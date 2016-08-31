@@ -2,7 +2,7 @@ package com.innovativetech.audio.audiobookmaster;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,8 +21,8 @@ public class LibraryFragment extends Fragment {
     private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/Dresden";
 
     private static final String TAG = "LibraryFragment";
-    private static final int PHONE_PORTRAIT_MODE_COLUMNS = 2;
-    private static final int PHONE_LANDSCAPE_MODE_COLUMNS = 3;
+    // private static final int PHONE_PORTRAIT_MODE_COLUMNS = 2;
+    // private static final int PHONE_LANDSCAPE_MODE_COLUMNS = 3;
 
     private RecyclerView mLibraryView;
     private File mInternalAudioBookDir;
@@ -44,13 +44,9 @@ public class LibraryFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_library, container, false);
         mLibraryView = (RecyclerView) view.findViewById(R.id.book_recycler_view);
-        mLibraryView.setLayoutManager(new GridLayoutManager(getActivity(), getNumColumns(), GridLayoutManager.VERTICAL, false));
+        mLibraryView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
 
         return view;
-    }
-
-    private int getNumColumns() {
-        return PHONE_PORTRAIT_MODE_COLUMNS;
     }
 
     private void setupAudioBookDirectory() {
@@ -68,7 +64,5 @@ public class LibraryFragment extends Fragment {
             Log.i(TAG, "removable SD Card directory is empty.");
         }
     }
-
-
 
 }

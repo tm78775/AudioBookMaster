@@ -1,5 +1,6 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -109,6 +110,8 @@ public class LibraryFragment extends Fragment {
         public void onClick(View v) {
             // todo: the onClick needs to be implemented.
             Snackbar.make(v, "OnClick was called", Snackbar.LENGTH_SHORT).show();
+            Intent intent = AudioPlayerActivity.newInstance(getActivity(), mAudioBook.getId());
+            startActivity(intent);
         }
 
     }

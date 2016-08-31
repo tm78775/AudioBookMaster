@@ -1,4 +1,4 @@
-package reveallayout;
+package com.innovativetech.audio.audiobookmaster;
 
 import android.animation.ObjectAnimator;
 import android.graphics.PorterDuff;
@@ -13,10 +13,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.innovativetech.audio.audiobookmaster.R;
-
-import fabreveallayout.FABRevealLayout;
-import fabreveallayout.OnRevealChangeListener;
+import com.innovativetech.audio.audiobookmaster.fabreveallayout.FABRevealLayout;
+import com.innovativetech.audio.audiobookmaster.fabreveallayout.OnRevealChangeListener;
 
 public class AudioPlayerActivity extends AppCompatActivity {
 

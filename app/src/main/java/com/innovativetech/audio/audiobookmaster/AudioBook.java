@@ -13,7 +13,7 @@ public class AudioBook {
     private String mTitle;
     private String mAuthor;
     private File   mBookDir;
-    private File   mImageDir;
+    private String mImageDir;
     private int    mCurrTrack;
     private int    mTrackTime;
     private File[] mTracks;
@@ -61,10 +61,10 @@ public class AudioBook {
         mBookDir = bookDir;
     }
 
-    public File getImageDir() {
+    public String getImageDir() {
         return mImageDir;
     }
-    public void setImageDir(File imageDir) {
+    public void setImageDir(String imageDir) {
         mImageDir = imageDir;
     }
 

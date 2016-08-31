@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:orientation="horizontal"
+              android:layout_width="match_parent"
+              android:layout_height="130dp"
+              android:layout_margin="2dp">
+
+    <ImageView
+        android:id="@+id/book_cover_view"
+        android:layout_width="128dp"
+        android:layout_height="128dp"/>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingLeft="8dp">
+
+        <TextView
+            android:id="@+id/title_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Alluring Title Here"/>
+
+        <TextView
+            android:id="@+id/author_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="by Author here"/>
+
+    </LinearLayout>
+
+</LinearLayout>

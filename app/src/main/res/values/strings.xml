@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">AudioBookMaster</string>
+
+    <string name="album_title">Ghost Story</string>
+    <string name="artist_name">Jim Butcher</string>
+    <string name="song_title">Chapter 1: Vampire Strike</string>
+</resources>

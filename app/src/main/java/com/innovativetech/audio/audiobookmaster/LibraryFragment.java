@@ -15,6 +15,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.innovativetech.audio.audiobookmaster.filesearch.AudioFileSearch;
+
 import java.io.File;
 import java.util.List;
 
@@ -25,7 +27,7 @@ public class LibraryFragment extends Fragment {
 
     // todo: these are for testing!!! These must by set by end-user to fit their file structure.
     private static final String INTERNAL_BOOK_DIR = "/audiobooks/Dresden";
-    private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/Dresden";
+    private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/";
 
     private static final String TAG = "LibraryFragment";
     // private static final int PHONE_PORTRAIT_MODE_COLUMNS = 2;
@@ -45,6 +47,11 @@ public class LibraryFragment extends Fragment {
         super.onCreate(savedStateInstance);
         setupAudioBookDirectory();
         mAudioBookAdapter = new AudioBookAdapter(AudioBookLibrary.getLibrary());
+
+        // todo: this is for testing directory searching.
+        AudioFileSearch searchEngine = new AudioFileSearch(mExternalAudioBookDir);
+        searchEngine.searchForAudioBooks();
+
     }
 
     @Override

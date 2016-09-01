@@ -1,14 +1,15 @@
 package com.innovativetech.audio.audiobookmaster.filesearch;
 
+import com.innovativetech.audio.audiobookmaster.AudioBook;
+
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.List;
 
 /**
  * Created by Timothy on 8/31/16.
  */
 public class AudioFileSearch {
-
-    private String mTopLevelDir;
 
     private static final FilenameFilter AUDIO_FILES_FILTER = new FilenameFilter() {
         public boolean accept(File dir, String name) {
@@ -28,8 +29,18 @@ public class AudioFileSearch {
         }
     };
 
-    public AudioFileSearch(String topLevelDir) {
+    private File mTopLevelDir;
+    private List<AudioBook> mAudioBooks;
+
+    public AudioFileSearch(File topLevelDir) {
         mTopLevelDir = topLevelDir;
+    }
+
+    // each folder THAT CONTAINS audio files is considered a book folder.
+    public void searchForAudioBooks() {
+        File[] allTheFiles = mTopLevelDir.listFiles();
+        String stop = "stophere";
+        // todo: this is where you need to continue.
     }
 
 }

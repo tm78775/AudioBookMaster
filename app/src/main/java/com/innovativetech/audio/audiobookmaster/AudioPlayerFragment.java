@@ -196,11 +196,13 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     private void setAlbumImage() {
-        if (mBook.getImageDir() != null) {
-            mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
-        } else if (mBook.hasBitmapArray()) {
+        if (mBook.hasBitmapArray()) {
             mAlbumCoverImage.setImageBitmap(Utilities.convertByteArrayToBitmap(mBook.getArtworkArray()));
+        } else if (mBook.getImageDir() != null) {
+            mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
         }
+
+
     }
 
     private void initializeMediaPlayer() {

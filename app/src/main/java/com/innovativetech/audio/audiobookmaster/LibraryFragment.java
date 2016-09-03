@@ -95,7 +95,9 @@ public class LibraryFragment extends Fragment {
 
         public void bindAudioBook(AudioBook book) {
             mAudioBook = book;
-            if (mAudioBook.getImageDir() != null) {
+            if (mAudioBook.hasBitmapArray()) {
+                mImageView.setImageBitmap(Utilities.convertByteArrayToBitmap(mAudioBook.getArtworkArray()));
+            } else if (mAudioBook.getImageDir() != null) {
                 try {
                     Bitmap bookCover = BitmapFactory.decodeFile(mAudioBook.getImageDir());
                     mImageView.setImageBitmap(bookCover);
@@ -103,8 +105,6 @@ public class LibraryFragment extends Fragment {
                 }catch(Exception e){
                     Log.e(TAG, "Retrieving book cover image failed.");
                 }
-            } else if (mAudioBook.hasBitmapArray()) {
-                mImageView.setImageBitmap(Utilities.convertByteArrayToBitmap(mAudioBook.getArtworkArray()));
             } else {
                 mImageView.setImageBitmap(null);
             }

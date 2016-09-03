@@ -1,6 +1,11 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
+
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.Mp3File;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -71,6 +76,7 @@ public class AudioFileSearch {
         }
         Log.i(TAG, "Finished searching for books.");
         sortTracks();
+        readMp3Data();
     }
     private boolean recursiveSearch(File topFile) {
 
@@ -131,6 +137,52 @@ public class AudioFileSearch {
                 }
                 mAudioBooks.get(i).setTracks(tracks);
             }
+        }
+    }
+
+    private void readMp3Data() {
+        for (int i = 0; i < mAudioBooks.size(); i++) {
+            AudioBook book = mAudioBooks.get(i);
+            if (book.getTracks()[0].toString().endsWith(".mp3")) {
+                book = readMp3Tag(book);
+                if (book != null) {
+                    mAudioBooks.set(i, book);
+                }
+            }
+        }
+    }
+
+    private AudioBook readMp3Tag(AudioBook book) {
+        try {
+            Mp3File mp3 = new Mp3File(book.getTracks()[0]);
+            if (mp3.hasId3v1Tag()) {
+                String madeIt = "so far so good";
+            }
+            if (mp3.hasId3v2Tag()) {
+                String madeIt = "so far so good";
+                ID3v2 tag = mp3.getId3v2Tag();
+
+                book.setTitle( (tag.getAlbum() == null ? book.getTitle() : tag.getAlbum()) );
+                book.setAuthor( (tag.getArtist() == null ? "" : tag.getArtist()) );
+                byte[] imageData = tag.getAlbumImage();
+                Bitmap bitmap;
+                if (imageData != null) {
+                    try {
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
+                        imageData = null;
+                        book.setArtwork(bitmap);
+                    } catch (Exception ex) {
+
+                    }
+                }
+
+                String takeBreak = "break here.";
+            }
+            return book;
+        } catch (Exception e) {
+            String failed = "sucks balls.";
+            return null;
         }
     }
 

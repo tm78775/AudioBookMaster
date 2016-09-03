@@ -103,6 +103,8 @@ public class LibraryFragment extends Fragment {
                 }catch(Exception e){
                     Log.e(TAG, "Retrieving book cover image failed.");
                 }
+            } else if (mAudioBook.getArtwork() != null) {
+                mImageView.setImageBitmap(mAudioBook.getArtwork());
             } else {
                 mImageView.setImageBitmap(null);
             }

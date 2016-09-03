@@ -63,7 +63,10 @@ public class AudioPlayerFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        initializeMediaPlayer();
+        if (mMediaPlayer.isPlaying()) {
+            mFabRevealLayout.revealMainView();
+            mFabRevealLayout.revealSecondaryView();
+        }
     }
 
     @Override
@@ -73,6 +76,10 @@ public class AudioPlayerFragment extends Fragment {
         findViews();
         configureFABReveal();
         setAlbumImage();
+
+        if (mMediaPlayer == null) {
+            initializeMediaPlayer();
+        }
 
         return mView;
     }
@@ -112,20 +119,13 @@ public class AudioPlayerFragment extends Fragment {
         mFabRevealLayout.setOnRevealChangeListener(new OnRevealChangeListener() {
             @Override
             public void onMainViewAppeared(FABRevealLayout fabRevealLayout, View mainView) {
-                if (mMediaPlayer == null || !mMediaPlayer.isPlaying()) {
-                    showMainViewItems();
-                } else {
-                    showSecondaryViewItems();
-                }
+                showMainViewItems();
             }
 
             @Override
             public void onSecondaryViewAppeared(final FABRevealLayout fabRevealLayout, View secondaryView) {
                 showSecondaryViewItems();
-                if (mMediaPlayer == null) {
-                    initializeMediaPlayer();
-                }
-                if (!mMediaPlayer.isPlaying()) {
+                if (mMediaPlayer.isPlaying() == false) {
                     mMediaPlayer.start();
                 }
             }
@@ -202,6 +202,11 @@ public class AudioPlayerFragment extends Fragment {
         // todo: hardcoded to do track 0 only for testing. Remove this.
         mMediaPlayer = null;
         mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getTracks()[0].toString()));
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+
     }
 
 }

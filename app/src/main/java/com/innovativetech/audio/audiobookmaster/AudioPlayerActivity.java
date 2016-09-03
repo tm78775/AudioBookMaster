@@ -6,8 +6,7 @@ import android.support.v4.app.Fragment;
 
 public class AudioPlayerActivity extends SingleFragmentActivity {
 
-    public static final String TAG = "AudioPlayerActivity";
-    public static final String EXTRA_BOOK = "book_extra";
+    private static final String EXTRA_BOOK = "book_extra";
 
     public static Intent newInstance(Context context, AudioBook audioBook) {
         Intent intent = new Intent(context, AudioPlayerActivity.class);
@@ -16,8 +15,7 @@ public class AudioPlayerActivity extends SingleFragmentActivity {
     }
 
     protected Fragment createFragment() {
-        AudioBook book = (AudioBook) getIntent().getSerializableExtra(EXTRA_BOOK);
-        return AudioPlayerFragment.newInstance(book);
+        return AudioPlayerFragment.newInstance((AudioBook) getIntent().getSerializableExtra(EXTRA_BOOK));
     }
 
 }

@@ -1,7 +1,5 @@
 package com.innovativetech.audio.audiobookmaster;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.mpatric.mp3agic.ID3v2;
@@ -162,22 +160,10 @@ public class AudioFileSearch {
                 String madeIt = "so far so good";
                 ID3v2 tag = mp3.getId3v2Tag();
 
-                book.setTitle( (tag.getAlbum() == null ? book.getTitle() : tag.getAlbum()) );
-                book.setAuthor( (tag.getArtist() == null ? "" : tag.getArtist()) );
-                byte[] imageData = tag.getAlbumImage();
-                Bitmap bitmap;
-                if (imageData != null) {
-                    try {
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.length, options);
-                        imageData = null;
-                        book.setArtwork(bitmap);
-                    } catch (Exception ex) {
+                book.setTitle       ( tag.getAlbum()      == null ? book.getTitle() : tag.getAlbum() );
+                book.setAuthor      ( tag.getArtist()     == null ? null            : tag.getArtist() );
+                book.setArtworkArray( tag.getAlbumImage() == null ? null            : tag.getAlbumImage() );
 
-                    }
-                }
-
-                String takeBreak = "break here.";
             }
             return book;
         } catch (Exception e) {

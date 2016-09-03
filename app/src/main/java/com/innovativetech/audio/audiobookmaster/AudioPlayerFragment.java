@@ -107,6 +107,9 @@ public class AudioPlayerFragment extends Fragment {
         mNextButton      = (ImageView)       mView.findViewById(R.id.next);
 
         styleSeekbar(mSongProgress);
+
+        mAlbumTitleText.setText(mBook.getTitle());
+        mArtistNameText.setText(mBook.getAuthor());
     }
 
     private void styleSeekbar(SeekBar songProgress) {
@@ -195,6 +198,8 @@ public class AudioPlayerFragment extends Fragment {
     private void setAlbumImage() {
         if (mBook.getImageDir() != null) {
             mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
+        } else if (mBook.hasBitmapArray()) {
+            mAlbumCoverImage.setImageBitmap(Utilities.convertByteArrayToBitmap(mBook.getArtworkArray()));
         }
     }
 

@@ -9,7 +9,9 @@
     <ImageView
         android:id="@+id/book_cover_view"
         android:layout_width="146dp"
-        android:layout_height="146dp"/>
+        android:layout_height="146dp"
+        android:padding="2dp"
+        android:background="@color/gray_background"/>
 
     <LinearLayout
         android:orientation="vertical"

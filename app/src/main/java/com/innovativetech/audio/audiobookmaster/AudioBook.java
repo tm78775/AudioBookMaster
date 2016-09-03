@@ -1,7 +1,5 @@
 package com.innovativetech.audio.audiobookmaster;
 
-import android.graphics.Bitmap;
-
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -21,7 +19,7 @@ public class AudioBook implements Serializable{
     private int      mTrackTime;
     private File[]   mTracks;
     private String[] mTrackTitles;
-    private Bitmap   mArtwork;
+    private byte[]   mArtworkArr;
 
     private ArrayList<File> mPlayOrder;
 
@@ -102,11 +100,19 @@ public class AudioBook implements Serializable{
         mTrackTitles[index] = trackTitle;
     }
 
-    public void setArtwork(Bitmap artwork) {
-        mArtwork = artwork;
+    public byte[] getArtworkArray() {
+        return mArtworkArr;
     }
-    public Bitmap getArtwork() {
-        return mArtwork;
+    public void setArtworkArray(byte[] artworkArray) {
+        mArtworkArr = artworkArray;
+    }
+
+    public boolean hasBitmapArray() {
+        if (mArtworkArr == null) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     public ArrayList<File> getPlayOrder() {

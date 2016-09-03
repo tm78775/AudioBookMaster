@@ -1,7 +1,10 @@
 package com.innovativetech.audio.audiobookmaster;
 
 import android.animation.ObjectAnimator;
+import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -17,18 +20,17 @@ import android.widget.Toast;
 import com.innovativetech.audio.audiobookmaster.fabreveallayout.FABRevealLayout;
 import com.innovativetech.audio.audiobookmaster.fabreveallayout.OnRevealChangeListener;
 
-import java.util.UUID;
-
 /**
  * Created by TMiller on 8/31/2016.
  */
 public class AudioPlayerFragment extends Fragment {
 
     private static final String TAG = "AudioPlayerFragment";
-    private static final String BOOK_ID_ARG = "book_id_arg";
+    private static final String BOOK_ARG = "book_arg";
+    private static final String PLAYER_ARG = "player_extra";
 
     private View mView;
-    private UUID mBookId;
+    private AudioBook mBook;
 
     private FABRevealLayout mFabRevealLayout;
     private TextView        mAlbumTitleText;
@@ -39,12 +41,13 @@ public class AudioPlayerFragment extends Fragment {
     private ImageView       mStopButton;
     private ImageView       mNextButton;
     private ImageView       mAlbumCoverImage;
+    private MediaPlayer     mMediaPlayer;
 
-    public static AudioPlayerFragment newInstance(UUID bookId) {
+    public static AudioPlayerFragment newInstance(AudioBook book) {
         AudioPlayerFragment fragment = new AudioPlayerFragment();
 
         Bundle args = new Bundle();
-        args.putSerializable(BOOK_ID_ARG, bookId);
+        args.putSerializable(BOOK_ARG, book);
 
         fragment.setArguments(args);
         return fragment;
@@ -53,8 +56,14 @@ public class AudioPlayerFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
-        mBookId = (UUID) getArguments().getSerializable(BOOK_ID_ARG);
+        mBook = (AudioBook) getArguments().getSerializable(BOOK_ARG);
         setRetainInstance(true);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        initializeMediaPlayer();
     }
 
     @Override
@@ -66,6 +75,17 @@ public class AudioPlayerFragment extends Fragment {
         setAlbumImage();
 
         return mView;
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        mMediaPlayer.release();
+        super.onDestroy();
     }
 
     private void findViews() {
@@ -92,12 +112,22 @@ public class AudioPlayerFragment extends Fragment {
         mFabRevealLayout.setOnRevealChangeListener(new OnRevealChangeListener() {
             @Override
             public void onMainViewAppeared(FABRevealLayout fabRevealLayout, View mainView) {
-                showMainViewItems();
+                if (mMediaPlayer == null || !mMediaPlayer.isPlaying()) {
+                    showMainViewItems();
+                } else {
+                    showSecondaryViewItems();
+                }
             }
 
             @Override
             public void onSecondaryViewAppeared(final FABRevealLayout fabRevealLayout, View secondaryView) {
                 showSecondaryViewItems();
+                if (mMediaPlayer == null) {
+                    initializeMediaPlayer();
+                }
+                if (!mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.start();
+                }
             }
         });
     }
@@ -147,7 +177,11 @@ public class AudioPlayerFragment extends Fragment {
 
         mStopButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                mFabRevealLayout.revealMainView();
+                if (mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.pause();
+                } else {
+                    mFabRevealLayout.revealMainView();
+                }
             }
         });
 
@@ -159,7 +193,15 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     private void setAlbumImage() {
-        mAlbumCoverImage.setImageResource(R.mipmap.dresden_ghost_story);
+        if (mBook.getImageDir() != null) {
+            mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
+        }
+    }
+
+    private void initializeMediaPlayer() {
+        // todo: hardcoded to do track 0 only for testing. Remove this.
+        mMediaPlayer = null;
+        mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getTracks()[0].toString()));
     }
 
 }

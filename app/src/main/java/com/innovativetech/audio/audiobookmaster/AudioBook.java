@@ -1,13 +1,14 @@
 package com.innovativetech.audio.audiobookmaster;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.UUID;
 
 /**
  * Created by TMiller on 8/30/2016.
  */
-public class AudioBook {
+public class AudioBook implements Serializable{
 
     private UUID   mId;
     private String mTitle;

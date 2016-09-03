@@ -113,7 +113,7 @@ public class LibraryFragment extends Fragment {
         public void onClick(View v) {
             // todo: the onClick needs to be implemented.
             Snackbar.make(v, "OnClick was called", Snackbar.LENGTH_SHORT).show();
-            Intent intent = AudioPlayerActivity.newInstance(getActivity(), mAudioBook.getId());
+            Intent intent = AudioPlayerActivity.newInstance(getActivity(), mAudioBook);
             startActivity(intent);
         }
 

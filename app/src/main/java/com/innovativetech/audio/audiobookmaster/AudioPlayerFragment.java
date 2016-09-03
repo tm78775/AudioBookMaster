@@ -54,6 +54,7 @@ public class AudioPlayerFragment extends Fragment {
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
         mBookId = (UUID) getArguments().getSerializable(BOOK_ID_ARG);
+        setRetainInstance(true);
     }
 
     @Override

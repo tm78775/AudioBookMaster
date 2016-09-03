@@ -15,8 +15,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.innovativetech.audio.audiobookmaster.filesearch.AudioFileSearch;
-
 import java.io.File;
 import java.util.List;
 
@@ -26,7 +24,7 @@ import java.util.List;
 public class LibraryFragment extends Fragment {
 
     // todo: these are for testing!!! These must by set by end-user to fit their file structure.
-    private static final String INTERNAL_BOOK_DIR = "/audiobooks/Dresden";
+    private static final String INTERNAL_BOOK_DIR = "/audiobooks/";
     private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/";
 
     private static final String TAG = "LibraryFragment";
@@ -46,12 +44,7 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
         setupAudioBookDirectory();
-        mAudioBookAdapter = new AudioBookAdapter(AudioBookLibrary.getLibrary());
-
-        // todo: this is for testing directory searching.
-        AudioFileSearch searchEngine = new AudioFileSearch(mExternalAudioBookDir);
-        searchEngine.searchForAudioBooks();
-
+        mAudioBookAdapter = new AudioBookAdapter(AudioBookLibrary.getLibrary(mExternalAudioBookDir));
     }
 
     @Override
@@ -102,14 +95,17 @@ public class LibraryFragment extends Fragment {
 
         public void bindAudioBook(AudioBook book) {
             mAudioBook = book;
+            if (mAudioBook.getImageDir() != null) {
+                try {
+                    Bitmap bookCover = BitmapFactory.decodeFile(mAudioBook.getImageDir());
+                    mImageView.setImageBitmap(bookCover);
 
-            try {
-                Bitmap bookCover = BitmapFactory.decodeFile(mExternalAudioBookDir + mAudioBook.getImageDir());
-                mImageView.setImageBitmap(bookCover);
-            } catch (Exception e) {
-                Log.e(TAG, "Retrieving book cover image failed.");
+                }catch(Exception e){
+                    Log.e(TAG, "Retrieving book cover image failed.");
+                }
+            } else {
+                mImageView.setImageBitmap(null);
             }
-
             mTitleView.setText (mAudioBook.getTitle());
             mAuthorView.setText(mAudioBook.getAuthor());
         }

@@ -1,5 +1,6 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,19 +9,15 @@ import java.util.List;
  */
 public class AudioBookLibrary {
 
-    public static List<AudioBook> getLibrary() {
+    public static List<AudioBook> getLibrary(File topLevelDir) {
         List<AudioBook> books = new ArrayList<AudioBook>();
 
 
         // todo: this is a sample audiobook for testing the recyclerview.
-        AudioBook book = new AudioBook();
-        book.setAuthor("Jim Butcher");
-        book.setTitle("Blood Rites");
-        book.setImageDir("/06 - Blood Rites/BK-6 Blood Rites/bloodrites.jpg");
+        AudioFileSearch searchEngine = new AudioFileSearch(topLevelDir);
+        searchEngine.searchForAudioBooks();
 
-        books.add(book);
-
-        return books;
+        return searchEngine.getSearchResults();
     }
 
 }

@@ -1,12 +1,11 @@
-package com.innovativetech.audio.audiobookmaster.filesearch;
+package com.innovativetech.audio.audiobookmaster;
 
 import android.util.Log;
-
-import com.innovativetech.audio.audiobookmaster.AudioBook;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -71,6 +70,7 @@ public class AudioFileSearch {
             }
         }
         Log.i(TAG, "Finished searching for books.");
+        sortTracks();
     }
     private boolean recursiveSearch(File topFile) {
 
@@ -111,5 +111,26 @@ public class AudioFileSearch {
 
     public List<AudioBook> getSearchResults() {
         return mAudioBooks;
+    }
+
+    private void sortTracks() {
+        Log.i(TAG, "Sorting tracks.");
+        for (int i = 0; i < mAudioBooks.size(); i++) {
+            File[] tracks = mAudioBooks.get(i).getTracks();
+
+            if (tracks != null) {
+                ArrayList<File> aTracks = new ArrayList<>();
+                for (int j = 0; j < tracks.length; j++) {
+                    aTracks.add(tracks[j]);
+                }
+                Collections.sort(aTracks);
+
+                tracks = new File[aTracks.size()];
+                for (int k = 0; k < aTracks.size(); k++) {
+                    tracks[k] = aTracks.get(k);
+                }
+                mAudioBooks.get(i).setTracks(tracks);
+            }
+        }
     }
 }

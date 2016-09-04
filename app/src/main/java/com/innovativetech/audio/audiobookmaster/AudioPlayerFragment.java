@@ -6,7 +6,9 @@ import android.graphics.PorterDuff;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,13 +28,12 @@ public class AudioPlayerFragment extends Fragment {
 
     private static final String TAG        = "AudioPlayerFragment";
     private static final String BOOK_ARG   = "book_arg";
-    private static final String PLAYER_ARG = "player_extra";
 
     private FABRevealLayout mFabRevealLayout;
     private TextView        mAlbumTitleText;
     private TextView        mArtistNameText;
-    private SeekBar         mSongProgress;
-    private TextView        mSongTitleText;
+    private SeekBar         mTrackSeekbar;
+    private TextView        mTrackTitleText;
     private ImageView       mPrevButton;
     private ImageView       mCenterPlayButton;
     private ImageView       mStopButton;
@@ -41,7 +42,12 @@ public class AudioPlayerFragment extends Fragment {
     private MediaPlayer     mMediaPlayer;
     private View            mView;
     private AudioBook       mBook;
+    private Handler         mSeekBarHandler;
+    private Thread          mSeekBarThread;
 
+    /*
+     *  This is the ONLY method which should be used to instantiate a new AudioPlayerFragment.
+     */
     public static AudioPlayerFragment newInstance(AudioBook book) {
         AudioPlayerFragment fragment = new AudioPlayerFragment();
 
@@ -57,15 +63,23 @@ public class AudioPlayerFragment extends Fragment {
         super.onCreate(savedStateInstance);
         mBook = (AudioBook) getArguments().getSerializable(BOOK_ARG);
         setRetainInstance(true);
+        mSeekBarHandler = new Handler();
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onResume() {
+        super.onResume();
         if (mMediaPlayer.isPlaying()) {
             mFabRevealLayout.revealMainView();
             mFabRevealLayout.revealSecondaryView();
+            onSeekBarStart();
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        onSeekBarPause();
     }
 
     @Override
@@ -78,16 +92,16 @@ public class AudioPlayerFragment extends Fragment {
         mFabRevealLayout  = (FABRevealLayout) mView.findViewById(R.id.fab_reveal_layout);
         mAlbumTitleText   = (TextView)        mView.findViewById(R.id.album_title_text);
         mArtistNameText   = (TextView)        mView.findViewById(R.id.artist_name_text);
-        mSongProgress     = (SeekBar)         mView.findViewById(R.id.song_progress_bar);
+        mTrackSeekbar     = (SeekBar)         mView.findViewById(R.id.track_seekbar);
         mAlbumCoverImage  = (ImageView)       mView.findViewById(R.id.album_cover_image);
-        mSongTitleText    = (TextView)        mView.findViewById(R.id.song_title_text);
+        mTrackTitleText   = (TextView)        mView.findViewById(R.id.song_title_text);
         mPrevButton       = (ImageView)       mView.findViewById(R.id.previous);
         mStopButton       = (ImageView)       mView.findViewById(R.id.stop);
         mNextButton       = (ImageView)       mView.findViewById(R.id.next);
         mCenterPlayButton = (ImageView)       mView.findViewById(R.id.centerPlay);
 
         // setup seekbar.
-        styleSeekbar(mSongProgress);
+        styleSeekbar(mTrackSeekbar);
 
         // set title and author textviews.
         mAlbumTitleText.setText(mBook.getTitle());
@@ -149,14 +163,39 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
-    }
-
-    @Override
     public void onDestroy() {
         mMediaPlayer.release();
         super.onDestroy();
+    }
+
+    private void setSeekBarListeners() {
+        mTrackSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            boolean wasPlaying = mMediaPlayer.isPlaying();
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                if (mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.pause();
+                    mStopButton.setVisibility(View.GONE);
+                    mCenterPlayButton.setVisibility(View.VISIBLE);
+                }
+            }
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mMediaPlayer.seekTo(progress);
+                    // todo: set audiobook current time in track.
+                }
+            }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                if (wasPlaying) {
+                    mStopButton.setVisibility(View.VISIBLE);
+                    mCenterPlayButton.setVisibility(View.GONE);
+                    mMediaPlayer.start();
+                }
+                setPlayerCompletedListener();
+            }
+        });
     }
 
     private void styleSeekbar(SeekBar songProgress) {
@@ -171,14 +210,12 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     private void showSecondaryViewItems() {
-        scale ( mSongProgress, 0 );
-        animateSeekBar(mSongProgress );
-        scale ( mSongTitleText, 100 );
+        scale (mTrackSeekbar, 0 );
+        animateSeekBar(mTrackSeekbar);
+        scale (mTrackTitleText, 100 );
         scale ( mPrevButton, 150 );
         scale ( mStopButton, 100 );
         scale ( mNextButton, 200 );
-
-        // setSecondaryViewListeners();
     }
 
     private void scale(View view, long delay){
@@ -201,28 +238,33 @@ public class AudioPlayerFragment extends Fragment {
         progressAnimator.start();
     }
 
-    private void setSecondaryViewListeners() {
-
-
+    private void initializeMediaPlayer() {
+        mMediaPlayer = null;
+        mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getTracks()[mBook.getCurrTrack()].toString()));
+        setPlayerCompletedListener();
     }
 
-    private void initializeMediaPlayer() {
-        // todo: hardcoded to do track 0 only for testing. Remove this.
-        mMediaPlayer = null;
-        mMediaPlayer = MediaPlayer.create(getActivity()
-                , Uri.parse(mBook.getTracks()[mBook.getCurrTrack()].toString()));
+    private void setPlayerCompletedListener() {
         mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
+                // todo: deal with seekbar.
                 onPlayerComplete();
             }
         });
     }
 
     private void onPlayerComplete() {
-        // pause the seek bar.
+        onSeekBarPause();
+        onNextTrack();
+    }
+
+    private void onNextTrack() {
+        // todo: complete the next track implementation.
         if (mBook.getCurrTrack() < mBook.numberTracks() - 1) {
-            onNextTrack();
+            // todo: go to next track.
         } else {
+            // we've reached the end of the book.
             mMediaPlayer.pause();
             mFabRevealLayout.revealMainView();
             mMediaPlayer.release();
@@ -230,12 +272,11 @@ public class AudioPlayerFragment extends Fragment {
         }
     }
 
-    private void onNextTrack() {
-        // todo: complete the next track implementation.
-    }
-
     private void onPreviousTrack() {
         // todo: complete the previous track implementation.
+        if (mBook.getCurrTrack() > 0) {
+
+        }
     }
 
     private void onStopTrack() {
@@ -244,17 +285,41 @@ public class AudioPlayerFragment extends Fragment {
         }
         mStopButton.setVisibility(View.GONE);
         mCenterPlayButton.setVisibility(View.VISIBLE);
-        // else {
-        //     mFabRevealLayout.revealMainView();
-        // }
     }
 
     private void onPlayTrack() {
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
+            onSeekBarStart();
         }
         mCenterPlayButton.setVisibility(View.GONE);
         mStopButton.setVisibility(View.VISIBLE);
+    }
+
+    private void onSeekBarStart() {
+        Log.i(TAG, "onSeekBarStart method called.");
+        if (mTrackSeekbar == null) {
+            mTrackSeekbar = (SeekBar) mView.findViewById(R.id.track_seekbar);
+        }
+        mTrackSeekbar.setMax(mMediaPlayer.getDuration());
+        setSeekBarListeners();
+
+        mSeekBarThread = new Thread(new Runnable() {
+            public void run() {
+                mSeekBarHandler.postDelayed(this, 500);
+                if (mMediaPlayer != null && mTrackSeekbar != null) {
+                    mTrackSeekbar.setProgress(mMediaPlayer.getCurrentPosition());
+                }
+            }
+        });
+        mSeekBarThread.start();
+    }
+
+    private void onSeekBarPause() {
+        Log.i(TAG, "onSeekBarPause method called.");
+        mSeekBarThread.interrupt();
+        mSeekBarThread = null;
+        mTrackSeekbar = null;
     }
 
 }

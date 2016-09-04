@@ -121,4 +121,8 @@ public class AudioBook implements Serializable{
     public void setPlayOrder(ArrayList<File> playOrder) {
         mPlayOrder = playOrder;
     }
+
+    public int numberTracks() {
+        return mTracks.length;
+    }
 }

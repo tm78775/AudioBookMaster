@@ -72,6 +72,11 @@
                         android:src="@drawable/ic_stop"
                         style="@style/MusicButtonStyle.CenterButtonStyle" />
                     <ImageView
+                        android:id="@+id/centerPlay"
+                        android:src="@drawable/ic_play_white"
+                        style="@style/MusicButtonStyle.CenterButtonStyle"
+                        android:visibility="gone"/>
+                    <ImageView
                         android:id="@+id/next"
                         android:src="@drawable/ic_skip_next"
                         style="@style/MusicButtonStyle" />

@@ -2,6 +2,7 @@ package com.innovativetech.audio.audiobookmaster;
 
 import android.util.Log;
 
+import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 
@@ -154,16 +155,29 @@ public class AudioFileSearch {
         try {
             Mp3File mp3 = new Mp3File(book.getTracks()[0]);
             if (mp3.hasId3v1Tag()) {
-                String madeIt = "so far so good";
+                ID3v1 tag = mp3.getId3v1Tag();
+
+                book.setTitle  ( tag.getAlbum()  == null ? book.getTitle() : tag.getAlbum() );
+                book.setAuthor ( tag.getArtist() == null ? null            : tag.getArtist() );
+
             }
-            if (mp3.hasId3v2Tag()) {
-                String madeIt = "so far so good";
+            else if (mp3.hasId3v2Tag()) {
                 ID3v2 tag = mp3.getId3v2Tag();
 
-                book.setTitle       ( tag.getAlbum()      == null ? book.getTitle() : tag.getAlbum() );
-                book.setAuthor      ( tag.getArtist()     == null ? null            : tag.getArtist() );
-                book.setArtworkArray( tag.getAlbumImage() == null ? null            : tag.getAlbumImage() );
+                book.setTitle        ( tag.getAlbum()      == null ? book.getTitle() : tag.getAlbum() );
+                book.setAuthor       ( tag.getArtist()     == null ? null            : tag.getArtist() );
+                book.setArtworkArray ( tag.getAlbumImage() == null ? null            : tag.getAlbumImage() );
 
+            }
+            else {
+                String bookTitle = book.getTitle();
+                if (bookTitle.contains("/")) {
+                    int index = bookTitle.lastIndexOf("/");
+                    String newTitle = book.getTitle().substring(index + 1);
+                    if (newTitle.length() > 1) {
+                        book.setTitle(newTitle);
+                    }
+                }
             }
             return book;
         } catch (Exception e) {

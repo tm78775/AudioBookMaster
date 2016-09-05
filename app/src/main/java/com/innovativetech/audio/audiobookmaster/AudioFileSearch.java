@@ -7,7 +7,6 @@ import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,51 +17,16 @@ import java.util.List;
 public class AudioFileSearch {
 
     private static final String TAG = "AudioFileSearch";
-    private static final FilenameFilter AUDIO_FILES_FILTER = new FilenameFilter() {
-        public boolean accept(File dir, String name) {
-            String lowercaseName = name.toLowerCase();
-            if (    lowercaseName.endsWith(".mp3")
-                    || lowercaseName.endsWith(".3gp")
-                    || lowercaseName.endsWith(".mp4")
-                    || lowercaseName.endsWith(".m4a")
-                    || lowercaseName.endsWith(".aac")
-                    || lowercaseName.endsWith(".flac")
-                    || lowercaseName.endsWith(".mkv")
-                    || lowercaseName.endsWith(".ogg")
-                    ) {
-                return true;
-            }
-            return false;
-        }
-    };
-    private static final FilenameFilter IMAGE_FILES_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String filename) {
-            String fname = filename.toLowerCase();
-            if (fname.endsWith(".jpg")
-                    || fname.endsWith(".jpeg")
-                    || fname.endsWith(".gif")
-                    || fname.endsWith(".bmp")
-                    || fname.endsWith(".png")) {
-                return true;
-            }
-            return false;
-        }
-    };
-    private static final FilenameFilter DIRECTORIES_ONLY_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return new File(dir, name).isDirectory();
-        }
-
-    };
-
     private File mTopLevelDir;
     private List<AudioBook> mAudioBooks;
 
     public AudioFileSearch(File topLevelDir) {
         mTopLevelDir = topLevelDir;
         mAudioBooks = new ArrayList<>();
+    }
+
+    public List<AudioBook> getSearchResults() {
+        return mAudioBooks;
     }
 
     // each folder THAT CONTAINS audio files is considered a book folder.
@@ -84,8 +48,8 @@ public class AudioFileSearch {
         }
 
         // in this new "topfile", search for sub-directories and audio files in directory.
-        File[] audioFilesInDir = topFile.listFiles(AUDIO_FILES_FILTER);
-        File[] filesInTopFile = topFile.listFiles(DIRECTORIES_ONLY_FILTER);
+        File[] audioFilesInDir = topFile.listFiles(Utilities.getAudioFilesFilter());
+        File[] filesInTopFile = topFile.listFiles(Utilities.getDirectoriesOnlyFilter());
 
         // If we land in a directory that has audio files.
         if (audioFilesInDir != null && audioFilesInDir.length > 0) {
@@ -95,7 +59,7 @@ public class AudioFileSearch {
             book.setTracks(audioFilesInDir);
 
             // while we're in the directory with audio, check for cover images.
-            File[] imagePaths = topFile.listFiles(IMAGE_FILES_FILTER);
+            File[] imagePaths = topFile.listFiles(Utilities.getImageFilesFilter());
             if (imagePaths != null && imagePaths.length > 0) {
                 book.setImageDir(imagePaths[0].toString());
             }
@@ -112,10 +76,6 @@ public class AudioFileSearch {
             return true;
         }
         return false;
-    }
-
-    public List<AudioBook> getSearchResults() {
-        return mAudioBooks;
     }
 
     private void sortTracks() {
@@ -181,7 +141,7 @@ public class AudioFileSearch {
             }
             return book;
         } catch (Exception e) {
-            String failed = "sucks balls.";
+            Log.e(TAG, "Error in reading ID3 tag.");
             return null;
         }
     }

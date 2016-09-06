@@ -1,6 +1,10 @@
 package com.innovativetech.audio.audiobookmaster;
 
-import java.io.File;
+import android.util.Log;
+
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.Mp3File;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -10,19 +14,16 @@ import java.util.UUID;
  */
 public class AudioBook implements Serializable{
 
+    private static final String TAG = "AudioBook";
+
     private UUID     mId;
     private String   mTitle;
     private String   mAuthor;
-    private File     mBookDir;
+    private String   mBookDir;
     private String   mImageDir;
-    private int      mCurrTrack;
-    private int      mTrackTime;
-    private File[]   mTracks;
-    private String[] mTrackTitles;
     private byte[]   mArtworkArr;
-
-    private ArrayList<File> mPlayOrder;
-
+    private AudioTrack mCurrentAudioTrack;
+    private ArrayList<AudioTrack> mAudioTracks;
 
     /*
      *  Constructors
@@ -30,10 +31,12 @@ public class AudioBook implements Serializable{
     // for new additions to the library.
     public AudioBook() {
         mId = UUID.randomUUID();
+        mAudioTracks = new ArrayList<>();
     }
     // for database to re-instantiate existing books back to the library.
     public AudioBook(UUID id) {
         mId = id;
+        mAudioTracks = new ArrayList<>();
     }
 
     /*
@@ -57,10 +60,10 @@ public class AudioBook implements Serializable{
         mAuthor = author;
     }
 
-    public File getBookDir() {
+    public String getBookDir() {
         return mBookDir;
     }
-    public void setBookDir(File bookDir) {
+    public void setBookDir(String bookDir) {
         mBookDir = bookDir;
     }
 
@@ -71,33 +74,42 @@ public class AudioBook implements Serializable{
         mImageDir = imageDir;
     }
 
+    public String getCurrentAudioTrack(int playSequence) {
+        for (int i = 0; i < mAudioTracks.size(); i++) {
+            if (mAudioTracks.get(i).getPlaySequence() == playSequence) {
+                return mAudioTracks.get(i).getTrackDir();
+            }
+        }
+        return null;
+    }
+
     public int getCurrTrack() {
-        return mCurrTrack;
+        if (mCurrentAudioTrack == null) {
+            setCurrTrack(0);
+        }
+        return mCurrentAudioTrack.getPlaySequence();
     }
     public void setCurrTrack(int currTrack) {
-        mCurrTrack = currTrack;
+        for (int i = 0; i < mAudioTracks.size(); i++) {
+            if (mAudioTracks.get(i).getPlaySequence() == currTrack) {
+                mCurrentAudioTrack = mAudioTracks.get(i);
+                break;
+            }
+        }
     }
 
     public int getTrackTime() {
-        return mTrackTime;
+        return mCurrentAudioTrack.getTimeIntoTrack();
     }
     public void setTrackTime(int trackTime) {
-        mTrackTime = trackTime;
+        mCurrentAudioTrack.setTimeIntoTrack(trackTime);
     }
 
-    public File[] getTracks() {
-        return mTracks;
+    public ArrayList<AudioTrack> getTracks() {
+        return mAudioTracks;
     }
-    public void setTracks(File[] tracks) {
-        mTracks = tracks;
-        mTrackTitles = new String[mTracks.length];
-    }
-
-    public String getTrackTitle(int index) {
-        return mTrackTitles[index];
-    }
-    public void setTrackTitle(int index, String trackTitle) {
-        mTrackTitles[index] = trackTitle;
+    public void setTracksList(ArrayList<AudioTrack> tracks) {
+        mAudioTracks = tracks;
     }
 
     public byte[] getArtworkArray() {
@@ -106,7 +118,6 @@ public class AudioBook implements Serializable{
     public void setArtworkArray(byte[] artworkArray) {
         mArtworkArr = artworkArray;
     }
-
     public boolean hasBitmapArray() {
         if (mArtworkArr == null) {
             return false;
@@ -115,14 +126,26 @@ public class AudioBook implements Serializable{
         }
     }
 
-    public ArrayList<File> getPlayOrder() {
-        return mPlayOrder;
-    }
-    public void setPlayOrder(ArrayList<File> playOrder) {
-        mPlayOrder = playOrder;
+    public int numberTracks() {
+        return mAudioTracks.size();
     }
 
-    public int numberTracks() {
-        return mTracks.length;
+    public void setAlbumArtwork() {
+        try {
+            for (int i = 0; i < mAudioTracks.size(); i++) {
+                if (mAudioTracks.get(i).getTrackDir().endsWith(".mp3")) {
+                    Mp3File mp3 = new Mp3File(mAudioTracks.get(i).getTrackDir());
+                    if (mp3.hasId3v2Tag()) {
+                        ID3v2 tag = mp3.getId3v2Tag();
+                        mArtworkArr = tag.getAlbumImage();
+                        if (hasBitmapArray()) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "Error loading album artwork from AudioBook class.");
+        }
     }
 }

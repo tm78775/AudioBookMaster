@@ -112,6 +112,8 @@ public class AudioPlayerFragment extends Fragment {
             mAlbumCoverImage.setImageBitmap(Utilities.convertByteArrayToBitmap(mBook.getArtworkArray()));
         } else if (mBook.getImageDir() != null) {
             mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
+        } else {
+            mAlbumCoverImage.setImageResource(R.mipmap.no_artwork_found);
         }
 
         // initialize media player if nothing is currently playing.
@@ -240,7 +242,7 @@ public class AudioPlayerFragment extends Fragment {
 
     private void initializeMediaPlayer() {
         mMediaPlayer = null;
-        mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getTracks()[mBook.getCurrTrack()].toString()));
+        mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getCurrentAudioTrack(mBook.getCurrTrack())));
         setPlayerCompletedListener();
     }
 
@@ -317,8 +319,10 @@ public class AudioPlayerFragment extends Fragment {
 
     private void onSeekBarPause() {
         Log.i(TAG, "onSeekBarPause method called.");
-        mSeekBarThread.interrupt();
-        mSeekBarThread = null;
+        if (mSeekBarThread != null) {
+            mSeekBarThread.interrupt();
+            mSeekBarThread = null;
+        }
         mTrackSeekbar = null;
     }
 

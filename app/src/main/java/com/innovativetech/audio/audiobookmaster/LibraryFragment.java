@@ -3,8 +3,8 @@ package com.innovativetech.audio.audiobookmaster;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -16,7 +16,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by TMiller on 8/30/2016.
@@ -35,6 +37,7 @@ public class LibraryFragment extends Fragment {
     private AudioBookAdapter mAudioBookAdapter;
     private File mInternalAudioBookDir;
     private File mExternalAudioBookDir;
+    private Librarian mLibrarian;
 
     public static LibraryFragment newInstance() {
         return new LibraryFragment();
@@ -44,7 +47,11 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
         setupAudioBookDirectory();
-        mAudioBookAdapter = new AudioBookAdapter(AudioBookLibrary.getLibrary(mExternalAudioBookDir));
+        // todo: get the "last book played" out of shared preferences. Load it.
+        mAudioBookAdapter = new AudioBookAdapter();
+        mLibrarian = new Librarian(getActivity());
+        new FetchLibraryTask().execute();
+        //mAudioBookAdapter = new AudioBookAdapter(mLibrarian.getLibrary());
     }
 
     @Override
@@ -75,7 +82,7 @@ public class LibraryFragment extends Fragment {
         }
     }
 
-    // todo: implement BookHolder.
+
     private class BookHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private AudioBook mAudioBook;
@@ -95,33 +102,31 @@ public class LibraryFragment extends Fragment {
 
         public void bindAudioBook(AudioBook book) {
             mAudioBook = book;
+
             if (mAudioBook.hasBitmapArray()) {
                 mImageView.setImageBitmap(Utilities.convertByteArrayToBitmap(mAudioBook.getArtworkArray()));
             } else if (mAudioBook.getImageDir() != null) {
                 try {
                     Bitmap bookCover = BitmapFactory.decodeFile(mAudioBook.getImageDir());
                     mImageView.setImageBitmap(bookCover);
-
-                }catch(Exception e){
+                } catch(Exception e) {
                     Log.e(TAG, "Retrieving book cover image failed.");
                 }
             } else {
-                mImageView.setImageBitmap(null);
+                mImageView.setImageResource(R.mipmap.no_artwork_found);
             }
-            mTitleView.setText (mAudioBook.getTitle());
-            mAuthorView.setText(mAudioBook.getAuthor());
+            mTitleView.setText  (mAudioBook.getTitle());
+            mAuthorView.setText (mAudioBook.getAuthor());
         }
 
         public void onClick(View v) {
-            // todo: the onClick needs to be implemented.
-            Snackbar.make(v, "OnClick was called", Snackbar.LENGTH_SHORT).show();
+            // todo: update shared preferences to reflect the most recent book played.
             Intent intent = AudioPlayerActivity.newInstance(getActivity(), mAudioBook);
             startActivity(intent);
         }
 
     }
 
-    // todo: implement the AudioBookAdapter class.
     private class AudioBookAdapter extends RecyclerView.Adapter<BookHolder> {
 
         private List<AudioBook> mAudioBooks;
@@ -129,6 +134,9 @@ public class LibraryFragment extends Fragment {
 
         public AudioBookAdapter(List<AudioBook> audioBooks) {
             mAudioBooks = audioBooks;
+        }
+        public AudioBookAdapter() {
+            mAudioBooks = new ArrayList<>();
         }
 
         @Override
@@ -148,6 +156,39 @@ public class LibraryFragment extends Fragment {
         @Override
         public int getItemCount() {
             return mAudioBooks.size();
+        }
+
+        public void addBookToAdapter(AudioBook audioBook) {
+            mAudioBooks.add(audioBook);
+            notifyDataSetChanged();
+        }
+    }
+
+
+    private class FetchLibraryTask extends AsyncTask<Void, Void, List<AudioBook>> {
+        @Override
+        protected List<AudioBook> doInBackground(Void... Void) {
+            // todo: this is hardcoded to use the one PERSONAL external directory. Needs to get users multiple directories configured.
+            // mLibrarian.searchAndAddToLibrary(mExternalAudioBookDir);
+            // return mLibrarian.getLibrary();
+            ArrayList<String> bookIds = mLibrarian.getLibraryIdsFromDb();
+            ArrayList<AudioBook> audioBooks = new ArrayList<>();
+
+            for (int i = 0; i < bookIds.size(); i++) {
+                AudioBook b = new AudioBook(UUID.fromString(bookIds.get(i)));
+                mLibrarian.getBookDetails(b);
+                audioBooks.add(b);
+            }
+
+            return audioBooks;
+        }
+
+        @Override
+        protected void onPostExecute(List<AudioBook> audioBook) {
+            super.onPostExecute(audioBook);
+            for (int i = 0; i < audioBook.size(); i++) {
+                mAudioBookAdapter.addBookToAdapter(audioBook.get(i));
+            }
         }
     }
 

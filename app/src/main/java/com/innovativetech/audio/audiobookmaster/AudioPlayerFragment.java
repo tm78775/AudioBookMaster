@@ -113,7 +113,7 @@ public class AudioPlayerFragment extends Fragment {
         } else if (mBook.getImageDir() != null) {
             mAlbumCoverImage.setImageBitmap(BitmapFactory.decodeFile(mBook.getImageDir()));
         } else {
-            mAlbumCoverImage.setImageResource(R.mipmap.no_artwork_found);
+            // mAlbumCoverImage.setImageResource(R.mipmap.no_artwork_found);
         }
 
         // initialize media player if nothing is currently playing.

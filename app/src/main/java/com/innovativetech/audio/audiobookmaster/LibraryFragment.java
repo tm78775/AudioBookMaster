@@ -139,7 +139,7 @@ public class LibraryFragment extends Fragment {
                     Log.e(TAG, "Retrieving book cover image failed.");
                 }
             } else {
-                mImageView.setImageResource(R.mipmap.no_artwork_found);
+                // mImageView.setImageResource(R.mipmap.no_artwork_found);
             }
             mTitleView.setText  (mAudioBook.getTitle());
             mAuthorView.setText (mAudioBook.getAuthor());
@@ -273,7 +273,7 @@ public class LibraryFragment extends Fragment {
                 } else {
                     // check to see if the directory (topFile) has a UUID
                     for (int i = 0; i < bookDirPairs.size(); i++) {
-                        String strDir = bookDirPairs.get(topFile);
+                        String strDir = bookDirPairs.get(topFile.toString());
                         if (strDir == null || strDir.equals("")) {
                             bookExists = false;
                         } else {

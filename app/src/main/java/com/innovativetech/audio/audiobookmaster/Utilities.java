@@ -4,8 +4,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 
+import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.Mp3File;
+
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by Timothy on 9/3/16.
@@ -90,6 +96,80 @@ public class Utilities {
      *  Read data from mp3 files.
      */
     // todo: Reading ID3 tags from mp3 files needs to be here.
+    public static void id3TagUpdateTitle(AudioBook book, String newTitle) {
+        // todo: implement this.
+    }
 
+    public static void id3TagUpdateAuthor(AudioBook book, String newAuthor) {
+        // todo: implement this.
+    }
+
+    public static void id3TagUpdateArtwork(AudioBook book, byte[] newBitmapArtwork) {
+        // todo: implement this.
+    }
+
+    public static void id3TagUpdateTrackTitle(File mp3File, String newTrackTitle) {
+        // todo:implement this.
+    }
+
+    // given an AudioBook object, this method will sort the tracks associated with it.
+    public static void sortTracks(AudioBook audioBook) {
+        Log.i(TAG, "Sorting tracks.");
+        Collections.sort(audioBook.getTracks());
+        for (int i = 0; i < audioBook.getTracks().size(); i++) {
+            audioBook.getTracks().get(i).setPlaySequence(i);
+        }
+    }
+
+    public static void readId3Tag(AudioBook book) {
+        try {
+
+            ArrayList<AudioTrack> tracks = book.getTracks();
+
+            for (int i = 0; i < book.getTracks().size(); i++) {
+                if (tracks.get(i).getTrackDir().toString().endsWith(".mp3")) {
+                    Mp3File mp3 = new Mp3File(tracks.get(i).getTrackDir().toString());
+                    if (mp3.hasId3v1Tag()) {
+                        ID3v1 tag = mp3.getId3v1Tag();
+
+                        if (i < 1) {
+                            book.setTitle(tag.getAlbum() == null ? book.getTitle() : tag.getAlbum());
+                            book.setAuthor(tag.getArtist() == null ? null : tag.getArtist());
+                        }
+                        book.getTracks().get(i).setTrackTitle(tag.getTrack() == null ? (i+1) + " of " + tracks.size() : tag.getTrack());
+
+                    } else if (mp3.hasId3v2Tag()) {
+                        ID3v2 tag = mp3.getId3v2Tag();
+
+                        if (i < 1) {
+                            book.setTitle(tag.getAlbum() == null ? book.getTitle() : tag.getAlbum());
+                            book.setAuthor(tag.getArtist() == null ? null : tag.getArtist());
+                            book.setArtworkArray(tag.getAlbumImage() == null ? null : tag.getAlbumImage());
+                        }
+                        if (!book.hasBitmapArray()) {
+                            book.setArtworkArray(tag.getAlbumImage() == null ? null : tag.getAlbumImage());
+                        }
+
+                        book.getTracks().get(i).setTrackTitle( tag.getTrack() == null ?  (i+1) + " of " + tracks.size() : tag.getTrack() );
+                    } else {
+                        if (i < 1) {
+                            String bookTitle = book.getTitle();
+                            if (bookTitle.contains("/")) {
+                                int index = bookTitle.lastIndexOf("/");
+                                String newTitle = book.getTitle().substring(index + 1);
+                                if (newTitle.length() > 1) {
+                                    book.setTitle(newTitle);
+                                }
+                            }
+                        }
+                        book.getTracks().get(i).setTrackTitle( (i+1) + " of " + tracks.size() );
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error in reading ID3 tag.");
+        }
+    }
 
 }

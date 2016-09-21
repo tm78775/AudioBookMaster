@@ -19,6 +19,7 @@ public class AudioTrack implements Comparable<AudioTrack>, Serializable {
     public AudioTrack(String trackDir) {
         mTrackDir = trackDir;
     }
+    public AudioTrack() {}
 
     public int getPlaySequence() {
         return mPlaySequence;

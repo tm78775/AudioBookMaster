@@ -1,10 +1,13 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -15,8 +18,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.innovativetech.audio.audiobookmaster.database.DataContract;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,16 +34,16 @@ public class LibraryFragment extends Fragment {
     // todo: these are for testing!!! These must by set by end-user to fit their file structure.
     private static final String INTERNAL_BOOK_DIR = "/audiobooks/";
     private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/";
-
     private static final String TAG = "LibraryFragment";
-    // private static final int PHONE_PORTRAIT_MODE_COLUMNS = 2;
-    // private static final int PHONE_LANDSCAPE_MODE_COLUMNS = 3;
 
-    private RecyclerView mLibraryView;
+    private View             mView;
+    private RecyclerView     mLibraryView;
     private AudioBookAdapter mAudioBookAdapter;
-    private File mInternalAudioBookDir;
-    private File mExternalAudioBookDir;
-    private Librarian mLibrarian;
+    private File             mInternalAudioBookDir;
+    private File             mExternalAudioBookDir;
+    private DataContract     mDatabase;
+
+    private ArrayList<AudioBookQuickLoad> mAudioBookQuickLoads;
 
     public static LibraryFragment newInstance() {
         return new LibraryFragment();
@@ -46,24 +52,45 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
+        Log.i(TAG, "Entered onCreate");
         setupAudioBookDirectory();
         // todo: get the "last book played" out of shared preferences. Load it.
+        mDatabase = new DataContract(getActivity(), "", null, 1, null);
         mAudioBookAdapter = new AudioBookAdapter();
-        mLibrarian = new Librarian(getActivity());
-        new FetchLibraryTask().execute();
-        //mAudioBookAdapter = new AudioBookAdapter(mLibrarian.getLibrary());
+        mAudioBookQuickLoads = new ArrayList<>();
+
+        // get a list of all the books in the database, populate library from this list.
+        List<String> audioBookIds = mDatabase.getAllBookIds();
+        for (int i = 0; i < audioBookIds.size(); i++) {
+            new FetchBookFromIdTask(getActivity()).execute(audioBookIds.get(i));
+        }
+
+        // based on user's directories configured, search those directories for books not yet added.
+        // the logic dictates that each folder which CONTAINS audio files is a folder which IS a book.
+        File[] allFiles = mExternalAudioBookDir.listFiles();
+        if (allFiles != null && allFiles.length > 0) {
+            for (int i = 0; i < allFiles.length; i++) {
+                new SearchForNewlyAddedAudioBooksTask(getActivity()).execute(allFiles[i]);
+            }
+        }
+        Log.i(TAG, "Finished searching for books.");
+
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedStateInstance) {
         super.onCreateView(inflater, container, savedStateInstance);
 
-        View view = inflater.inflate(R.layout.fragment_library, container, false);
-        mLibraryView = (RecyclerView) view.findViewById(R.id.book_recycler_view);
-        mLibraryView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
-        mLibraryView.setAdapter(mAudioBookAdapter);
+        Log.i(TAG, "Entered onCreateView.");
+        mView = inflater.inflate(R.layout.fragment_library, container, false);
 
-        return view;
+        mLibraryView = (RecyclerView) mView.findViewById(R.id.book_recycler_view);
+        mLibraryView.setAdapter(mAudioBookAdapter);
+        mLibraryView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
+
+        Log.i(TAG, "Exiting onCreateView");
+
+        return mView;
     }
 
     private void setupAudioBookDirectory() {
@@ -81,7 +108,6 @@ public class LibraryFragment extends Fragment {
             Log.i(TAG, "removable SD Card directory is empty.");
         }
     }
-
 
     private class BookHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
@@ -129,14 +155,10 @@ public class LibraryFragment extends Fragment {
 
     private class AudioBookAdapter extends RecyclerView.Adapter<BookHolder> {
 
-        private List<AudioBook> mAudioBooks;
+        private List<AudioBook> mAudioBook;
 
-
-        public AudioBookAdapter(List<AudioBook> audioBooks) {
-            mAudioBooks = audioBooks;
-        }
         public AudioBookAdapter() {
-            mAudioBooks = new ArrayList<>();
+            mAudioBook = new ArrayList<>();
         }
 
         @Override
@@ -146,50 +168,175 @@ public class LibraryFragment extends Fragment {
 
             return new BookHolder(view);
         }
-
         @Override
         public void onBindViewHolder(BookHolder holder, int position) {
-            AudioBook audioBook = mAudioBooks.get(position);
+            AudioBook audioBook = mAudioBook.get(position);
             holder.bindAudioBook(audioBook);
         }
-
         @Override
         public int getItemCount() {
-            return mAudioBooks.size();
+            return mAudioBook.size();
         }
 
         public void addBookToAdapter(AudioBook audioBook) {
-            mAudioBooks.add(audioBook);
-            notifyDataSetChanged();
+            mAudioBook.add(audioBook);
         }
     }
 
 
-    private class FetchLibraryTask extends AsyncTask<Void, Void, List<AudioBook>> {
-        @Override
-        protected List<AudioBook> doInBackground(Void... Void) {
-            // todo: this is hardcoded to use the one PERSONAL external directory. Needs to get users multiple directories configured.
-            // mLibrarian.searchAndAddToLibrary(mExternalAudioBookDir);
-            // return mLibrarian.getLibrary();
-            ArrayList<String> bookIds = mLibrarian.getLibraryIdsFromDb();
-            ArrayList<AudioBook> audioBooks = new ArrayList<>();
+    private class FetchBookFromIdTask extends AsyncTask<String, Void, AudioBook> {
 
-            for (int i = 0; i < bookIds.size(); i++) {
-                AudioBook b = new AudioBook(UUID.fromString(bookIds.get(i)));
-                mLibrarian.getBookDetails(b);
-                audioBooks.add(b);
-            }
+        private Context mContext;
 
-            return audioBooks;
+        public FetchBookFromIdTask(Context context) {
+            mContext = context;
         }
 
         @Override
-        protected void onPostExecute(List<AudioBook> audioBook) {
-            super.onPostExecute(audioBook);
-            for (int i = 0; i < audioBook.size(); i++) {
-                mAudioBookAdapter.addBookToAdapter(audioBook.get(i));
-            }
+        protected AudioBook doInBackground(String... strings) {
+            AudioBook book = new AudioBook(UUID.fromString( strings[0] ));
+            mDatabase.fetchBook(book);
+            book.setAlbumArtwork();
+
+            return book;
         }
+        @Override
+        protected void onPostExecute(AudioBook audioBook) {
+            mAudioBookAdapter.addBookToAdapter(audioBook);
+
+            Handler uiThreadHandler = new Handler(mContext.getMainLooper());
+
+            Runnable dataSetChangedRunnable = new Runnable() {
+                public void run() {
+                    mAudioBookAdapter.notifyDataSetChanged();
+                }
+            };
+
+            uiThreadHandler.post(dataSetChangedRunnable);
+        }
+
+    }
+
+
+    private class SearchForNewlyAddedAudioBooksTask extends AsyncTask<File, Void, String> {
+
+        private Context mContext;
+
+        public SearchForNewlyAddedAudioBooksTask(Context context) {
+            mContext = context;
+        }
+
+        @Override
+        protected String doInBackground(File... args) {
+            HashMap<String,String> bookPairs = mDatabase.getBookIdAndDirectoryPairs();
+            recursiveSearch(args[0], bookPairs);
+            return "";
+        }
+        @Override
+        protected void onProgressUpdate(Void... args) {
+            Handler uiThreadHandler = new Handler(mContext.getMainLooper());
+
+            Runnable dataSetChangedRunnable = new Runnable() {
+                public void run() {
+                    mAudioBookAdapter.notifyDataSetChanged();
+                    Snackbar.make(getView(), "New book found! Added to library.", Snackbar.LENGTH_LONG).show();
+                }
+            };
+
+            uiThreadHandler.post(dataSetChangedRunnable);
+        }
+        @Override
+        protected void onPostExecute(String nothing) {
+            // todo: load quickload books into shared preferences.
+        }
+
+
+
+        private boolean recursiveSearch(File topFile, HashMap<String,String> bookDirPairs) {
+
+            Log.i(TAG, "Recursing...");
+            if (topFile == null) {
+                return true;
+            }
+
+            // in this new "topfile", search for sub-directories and audio files in directory.
+            File[] audioFilesInDir = topFile.listFiles(Utilities.getAudioFilesFilter());
+            File[] filesInTopFile  = topFile.listFiles(Utilities.getDirectoriesOnlyFilter());
+
+            boolean bookExists = true;
+            // If we land in a directory that has audio files.
+            if (audioFilesInDir != null && audioFilesInDir.length > 0) {
+
+                // if bookDirPairs is empty, then it's not in the database and db has nothing in it.
+                if (bookDirPairs.size() == 0) {
+                    assembleAndStoreBook(audioFilesInDir, topFile);
+                } else {
+                    // check to see if the directory (topFile) has a UUID
+                    for (int i = 0; i < bookDirPairs.size(); i++) {
+                        String strDir = bookDirPairs.get(topFile);
+                        if (strDir == null || strDir.equals("")) {
+                            bookExists = false;
+                        } else {
+                            bookExists = true;
+                        }
+
+                        if (!bookExists) {
+                            assembleAndStoreBook(audioFilesInDir, topFile);
+                        }
+                    }
+                }
+            }
+
+            // if there are more files to be searched, recurse.
+            if (filesInTopFile != null && filesInTopFile.length > 0) {
+                for (int i = 0; i < filesInTopFile.length; i++) {
+                    recursiveSearch(filesInTopFile[i], bookDirPairs);
+                }
+            } else {
+                return true;
+            }
+            return false;
+        }
+
+        private void assembleAndStoreBook(File[] audioFilesInDir, File topFile) {
+            // create new audiobook from these files, add them to mAudioBooks.
+            AudioBook book;
+            book = new AudioBook();
+
+            book.setTitle(audioFilesInDir[0].toString());
+
+            ArrayList<AudioTrack>  tracksList = new ArrayList<>();
+            for (int i = 0; i < audioFilesInDir.length; i++) {
+
+                AudioTrack t = new AudioTrack();
+
+                t.setTrackDir(audioFilesInDir[i].toString());
+                t.setTimeIntoTrack(0);
+
+                tracksList.add(t);
+            }
+
+            book.setTracksList(tracksList);
+            book.setBookDir(topFile.toString());
+
+            Utilities.sortTracks(book);
+            Utilities.readId3Tag(book);
+
+            // add found audiobook to the AudioBookQuickLoad collection.
+            AudioBookQuickLoad quickLoadBook = new AudioBookQuickLoad(book.getId());
+            quickLoadBook.setImageArr   (book.getArtworkArray());
+            quickLoadBook.setBookTitle  (book.getTitle());
+            quickLoadBook.setBookAuthor (book.getAuthor());
+
+            mAudioBookQuickLoads.add(quickLoadBook);
+
+            // add found audiobook to AudioBook Adapter.
+            mAudioBookAdapter.addBookToAdapter(book);
+            mDatabase.addBookToDatabase(book);
+
+            publishProgress();
+        }
+
     }
 
 }

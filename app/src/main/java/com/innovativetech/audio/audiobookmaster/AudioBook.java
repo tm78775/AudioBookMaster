@@ -39,6 +39,11 @@ public class AudioBook implements Serializable{
         mAudioTracks = new ArrayList<>();
     }
 
+    @Override
+    public String toString() {
+        return mTitle;
+    }
+
     /*
      *  Getters and Setters
      */
@@ -147,5 +152,8 @@ public class AudioBook implements Serializable{
         } catch (Exception ex) {
             Log.e(TAG, "Error loading album artwork from AudioBook class.");
         }
+    }
+    public void setAlbumArtwork(byte[] artworkByteArr) {
+        mArtworkArr = artworkByteArr;
     }
 }

@@ -1,12 +1,16 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -22,6 +26,7 @@ import com.innovativetech.audio.audiobookmaster.database.DataContract;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -36,14 +41,12 @@ public class LibraryFragment extends Fragment {
     private static final String EXTERNAL_BOOK_DIR = "/AudioBooks/";
     private static final String TAG = "LibraryFragment";
 
-    private View             mView;
-    private RecyclerView     mLibraryView;
-    private AudioBookAdapter mAudioBookAdapter;
-    private File             mInternalAudioBookDir;
-    private File             mExternalAudioBookDir;
-    private DataContract     mDatabase;
-
-    private ArrayList<AudioBookQuickLoad> mAudioBookQuickLoads;
+    private View              mView;
+    private RecyclerView      mLibraryView;
+    private AudioBookAdapter  mAudioBookAdapter;
+    private ArrayList<File>   mUserDefinedDirs;
+    private ArrayList<String> mAudioBookFolders;
+    private DataContract      mDatabase;
 
     public static LibraryFragment newInstance() {
         return new LibraryFragment();
@@ -53,27 +56,38 @@ public class LibraryFragment extends Fragment {
     public void onCreate(Bundle savedStateInstance) {
         super.onCreate(savedStateInstance);
         Log.i(TAG, "Entered onCreate");
-        setupAudioBookDirectory();
+        // todo: setupAduiuoBookDirectory has been tailored to personal phone. Needs to work for all phones.
+        // setupAudioBookDirectory();
         // todo: get the "last book played" out of shared preferences. Load it.
-        mDatabase = new DataContract(getActivity(), "", null, 1, null);
+        // mDatabase = new DataContract(getActivity(), "", null, 1, null);
         mAudioBookAdapter = new AudioBookAdapter();
-        mAudioBookQuickLoads = new ArrayList<>();
+        mUserDefinedDirs  = new ArrayList<>();
+        mAudioBookFolders = new ArrayList<>();
+
+        // todo: these will be saved by users into the shared preferences.
+        mUserDefinedDirs.add( new File(System.getenv("SECONDARY_STORAGE") + EXTERNAL_BOOK_DIR) );
 
         // get a list of all the books in the database, populate library from this list.
-        List<String> audioBookIds = mDatabase.getAllBookIds();
-        for (int i = 0; i < audioBookIds.size(); i++) {
-            new FetchBookFromIdTask(getActivity()).execute(audioBookIds.get(i));
-        }
+        // List<String> audioBookIds = mDatabase.getAllBookIds();
+        // for (int i = 0; i < audioBookIds.size(); i++) {
+        //     new FetchBookFromIdTask(getActivity()).execute(audioBookIds.get(i));
+        // }
 
         // based on user's directories configured, search those directories for books not yet added.
         // the logic dictates that each folder which CONTAINS audio files is a folder which IS a book.
-        File[] allFiles = mExternalAudioBookDir.listFiles();
-        if (allFiles != null && allFiles.length > 0) {
-            for (int i = 0; i < allFiles.length; i++) {
-                new SearchForNewlyAddedAudioBooksTask(getActivity()).execute(allFiles[i]);
-            }
-        }
-        Log.i(TAG, "Finished searching for books.");
+        // File[] allFiles = mExternalAudioBookDir.listFiles();
+        // if (allFiles != null && allFiles.length > 0) {
+        //     for (int i = 0; i < allFiles.length; i++) {
+        //         new SearchForNewlyAddedAudioBooksTask(getActivity()).execute(allFiles[i]);
+        //     }
+        // }
+
+        searchForAudioBooks();
+
+
+
+        Log.i(TAG, "Finished searching for folders.");
+
 
     }
 
@@ -93,20 +107,94 @@ public class LibraryFragment extends Fragment {
         return mView;
     }
 
-    private void setupAudioBookDirectory() {
-        // gets all books in built-in SD card.
-        mInternalAudioBookDir = new File(android.os.Environment.getExternalStorageDirectory() + INTERNAL_BOOK_DIR);
-        File[] internalBooks = mInternalAudioBookDir.listFiles();
-        if (internalBooks == null) {
-            Log.i(TAG, "Internal SD Card directory is empty.");
+    private void searchForAudioBooks() {
+        // find all subdirectories in the root directory.
+        for( int i = 0; i < mUserDefinedDirs.size(); i++ ) {
+            File[] foldersInTopDir = mUserDefinedDirs.get( i ).listFiles(Utilities.getDirectoriesOnlyFilter());
+            searchForFolders(foldersInTopDir);
         }
 
-        // gets all books in removable SD card.
-        mExternalAudioBookDir = new File(System.getenv("SECONDARY_STORAGE") + EXTERNAL_BOOK_DIR);
-        File[] externalBooks = mExternalAudioBookDir.listFiles();
-        if (internalBooks == null) {
-            Log.i(TAG, "removable SD Card directory is empty.");
+        // get all audio inside the subdirectories.
+        createAudioBookObjects();
+    }
+
+    private void searchForFolders( File[] topFolders ) {
+        for ( int i = 0; i < topFolders.length; i++ ) {
+             recursiveFolderSearch( topFolders[i] );
         }
+        Collections.sort( mAudioBookFolders );
+    }
+    private void recursiveFolderSearch ( File parentFile ) {
+        if( parentFile == null ) {
+            return;
+        }
+
+        File[] foldersInParent = parentFile.listFiles(Utilities.getDirectoriesOnlyFilter());
+
+        // if there are no other folders inside this directory, we know we've hit a dead end which likely
+        // has audio files present.
+        if( foldersInParent == null || foldersInParent.length == 0) {
+            mAudioBookFolders.add( parentFile.toString() );
+            return;
+        }
+
+        // if there ARE other folders present in this directory, then this is another parent folder.
+        // drill down to the next level. Recurse.
+        if( foldersInParent != null ) {
+            for( int i = 0; i < foldersInParent.length; i++ ) {
+                recursiveFolderSearch( foldersInParent[i] );
+            }
+        }
+    }
+
+    private void createAudioBookObjects() {
+        ContentResolver resolver = getActivity().getContentResolver();
+
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        String selection = MediaStore.Audio.Media.DATA + " LIKE ? ";
+        String sortOrder = MediaStore.Audio.Media.DATA + " ASC";
+
+        for( int i = 0; i < mAudioBookFolders.size(); i++ ) {
+            String[] selectArgs = { mAudioBookFolders.get( i ) + "%" };
+            Cursor cursor = resolver.query( uri, null, selection, selectArgs, sortOrder );
+            ArrayList<AudioTrack> bookTracks = new ArrayList<>();
+            AudioBook book = new AudioBook();
+
+            if ( cursor != null ) {
+                cursor.moveToFirst();
+                int trackNumber = 1;
+
+                while( !cursor.isAfterLast() ) {
+                    String audioFileDir = cursor.getString( cursor.getColumnIndex( MediaStore.Audio.Media.DATA) );
+                    String trackName    = cursor.getString( cursor.getColumnIndex( MediaStore.Audio.Media.TRACK) );
+
+                    AudioTrack track = new AudioTrack( audioFileDir );
+                    track.setTrackTitle   ( trackName );
+                    track.setPlaySequence ( trackNumber );
+                    track.setTimeIntoTrack( 0 );
+
+                    bookTracks.add( track );
+                    Log.i(TAG, "Adding audiotrack: " + audioFileDir);
+
+                    cursor.moveToNext();
+                    trackNumber++;
+                }
+
+                book.setTracksList( bookTracks );
+                mAudioBookAdapter.addBookToAdapter( book );
+
+            } else {
+                Log.i( TAG, "Cursor was null." );
+            }
+        }
+
+        String itsDone = "!";
+        Log.i( TAG, itsDone );
+    }
+
+    private void setupAudioBookDirectory() {
+        // gets all books in built-in SD card.
+        // mInternalAudioBookDir = new File(android.os.Environment.getExternalStorageDirectory() + INTERNAL_BOOK_DIR);
     }
 
     private class BookHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -217,7 +305,6 @@ public class LibraryFragment extends Fragment {
 
     }
 
-
     private class SearchForNewlyAddedAudioBooksTask extends AsyncTask<File, Void, String> {
 
         private Context mContext;
@@ -321,14 +408,6 @@ public class LibraryFragment extends Fragment {
 
             Utilities.sortTracks(book);
             Utilities.readId3Tag(book);
-
-            // add found audiobook to the AudioBookQuickLoad collection.
-            AudioBookQuickLoad quickLoadBook = new AudioBookQuickLoad(book.getId());
-            quickLoadBook.setImageArr   (book.getArtworkArray());
-            quickLoadBook.setBookTitle  (book.getTitle());
-            quickLoadBook.setBookAuthor (book.getAuthor());
-
-            mAudioBookQuickLoads.add(quickLoadBook);
 
             // add found audiobook to AudioBook Adapter.
             mAudioBookAdapter.addBookToAdapter(book);

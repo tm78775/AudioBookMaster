@@ -53,9 +53,9 @@ public class LibraryFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedStateInstance) {
-        super.onCreate(savedStateInstance);
-        Log.i(TAG, "Entered onCreate");
+    public void onCreate( Bundle savedStateInstance ) {
+        super.onCreate( savedStateInstance );
+        Log.i( TAG, "Entered onCreate" );
         // todo: setupAduiuoBookDirectory has been tailored to personal phone. Needs to work for all phones.
         // setupAudioBookDirectory();
         // todo: get the "last book played" out of shared preferences. Load it.
@@ -65,7 +65,7 @@ public class LibraryFragment extends Fragment {
         mAudioBookFolders = new ArrayList<>();
 
         // todo: these will be saved by users into the shared preferences.
-        mUserDefinedDirs.add( new File(System.getenv("SECONDARY_STORAGE") + EXTERNAL_BOOK_DIR) );
+        mUserDefinedDirs.add( new File( System.getenv( "SECONDARY_STORAGE" ) + EXTERNAL_BOOK_DIR ) );
 
         // get a list of all the books in the database, populate library from this list.
         // List<String> audioBookIds = mDatabase.getAllBookIds();
@@ -83,26 +83,21 @@ public class LibraryFragment extends Fragment {
         // }
 
         searchForAudioBooks();
-
-
-
-        Log.i(TAG, "Finished searching for folders.");
-
-
+        Log.i( TAG, "Finished searching for folders." );
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedStateInstance) {
-        super.onCreateView(inflater, container, savedStateInstance);
+    public View onCreateView( LayoutInflater inflater, ViewGroup container, Bundle savedStateInstance ) {
+        super.onCreateView( inflater, container, savedStateInstance );
 
-        Log.i(TAG, "Entered onCreateView.");
-        mView = inflater.inflate(R.layout.fragment_library, container, false);
+        Log.i( TAG, "Entered onCreateView." );
+        mView = inflater.inflate( R.layout.fragment_library, container, false );
 
-        mLibraryView = (RecyclerView) mView.findViewById(R.id.book_recycler_view);
-        mLibraryView.setAdapter(mAudioBookAdapter);
-        mLibraryView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
+        mLibraryView = ( RecyclerView ) mView.findViewById( R.id.book_recycler_view );
+        mLibraryView.setAdapter( mAudioBookAdapter );
+        mLibraryView.setLayoutManager( new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false) );
 
-        Log.i(TAG, "Exiting onCreateView");
+        Log.i( TAG, "Exiting onCreateView" );
 
         return mView;
     }
@@ -110,8 +105,8 @@ public class LibraryFragment extends Fragment {
     private void searchForAudioBooks() {
         // find all subdirectories in the root directory.
         for( int i = 0; i < mUserDefinedDirs.size(); i++ ) {
-            File[] foldersInTopDir = mUserDefinedDirs.get( i ).listFiles(Utilities.getDirectoriesOnlyFilter());
-            searchForFolders(foldersInTopDir);
+            File[] foldersInTopDir = mUserDefinedDirs.get( i ).listFiles( Utilities.getDirectoriesOnlyFilter() );
+            searchForFolders( foldersInTopDir );
         }
 
         // get all audio inside the subdirectories.
@@ -129,11 +124,11 @@ public class LibraryFragment extends Fragment {
             return;
         }
 
-        File[] foldersInParent = parentFile.listFiles(Utilities.getDirectoriesOnlyFilter());
+        File[] foldersInParent = parentFile.listFiles( Utilities.getDirectoriesOnlyFilter() );
 
         // if there are no other folders inside this directory, we know we've hit a dead end which likely
         // has audio files present.
-        if( foldersInParent == null || foldersInParent.length == 0) {
+        if( foldersInParent == null || foldersInParent.length == 0 ) {
             mAudioBookFolders.add( parentFile.toString() );
             return;
         }
@@ -150,42 +145,46 @@ public class LibraryFragment extends Fragment {
     private void createAudioBookObjects() {
         ContentResolver resolver = getActivity().getContentResolver();
 
-        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        Uri    uri       = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String selection = MediaStore.Audio.Media.DATA + " LIKE ? ";
         String sortOrder = MediaStore.Audio.Media.DATA + " ASC";
+        Cursor cursor    = null;
 
-        for( int i = 0; i < mAudioBookFolders.size(); i++ ) {
-            String[] selectArgs = { mAudioBookFolders.get( i ) + "%" };
-            Cursor cursor = resolver.query( uri, null, selection, selectArgs, sortOrder );
-            ArrayList<AudioTrack> bookTracks = new ArrayList<>();
-            AudioBook book = new AudioBook();
+        try {
+            for ( int i = 0; i < mAudioBookFolders.size(); i++ ) {
+                String[] selectArgs = { mAudioBookFolders.get( i ) + "%" };
+                cursor = resolver.query ( uri, null, selection, selectArgs, sortOrder );
+                ArrayList<AudioTrack> bookTracks = new ArrayList<>();
+                AudioBook book = new AudioBook();
 
-            if ( cursor != null ) {
-                cursor.moveToFirst();
-                int trackNumber = 1;
+                if ( cursor != null ) {
+                    cursor.moveToFirst();
+                    int trackNumber = 1;
 
-                while( !cursor.isAfterLast() ) {
-                    String audioFileDir = cursor.getString( cursor.getColumnIndex( MediaStore.Audio.Media.DATA) );
-                    String trackName    = cursor.getString( cursor.getColumnIndex( MediaStore.Audio.Media.TRACK) );
+                    while ( !cursor.isAfterLast() ) {
+                        String audioFileDir = cursor.getString ( cursor.getColumnIndex( MediaStore.Audio.Media.DATA ) );
+                        AudioTrack track    = new AudioTrack   ( audioFileDir );
+                        String trackName    = cursor.getString ( cursor.getColumnIndex( MediaStore.Audio.Media.TRACK ) );
 
-                    AudioTrack track = new AudioTrack( audioFileDir );
-                    track.setTrackTitle   ( trackName );
-                    track.setPlaySequence ( trackNumber );
-                    track.setTimeIntoTrack( 0 );
+                        track.setTrackTitle    ( trackName );
+                        track.setPlaySequence  ( trackNumber );
+                        track.setTimeIntoTrack ( 0 );
 
-                    bookTracks.add( track );
-                    Log.i(TAG, "Adding audiotrack: " + audioFileDir);
+                        bookTracks.add ( track );
 
-                    cursor.moveToNext();
-                    trackNumber++;
+                        cursor.moveToNext();
+                        trackNumber++;
+                    }
+
+                    book.setTracksList ( bookTracks );
+                    mAudioBookAdapter.addBookToAdapter ( book );
+
+                } else {
+                    Log.i ( TAG, "Cursor was null." );
                 }
-
-                book.setTracksList( bookTracks );
-                mAudioBookAdapter.addBookToAdapter( book );
-
-            } else {
-                Log.i( TAG, "Cursor was null." );
             }
+        } finally {
+            cursor.close();
         }
 
         String itsDone = "!";
@@ -201,8 +200,8 @@ public class LibraryFragment extends Fragment {
 
         private AudioBook mAudioBook;
         private ImageView mImageView;
-        private TextView mTitleView;
-        private TextView mAuthorView;
+        private TextView  mTitleView;
+        private TextView  mAuthorView;
 
         public BookHolder(View itemView) {
             super(itemView);
@@ -229,13 +228,13 @@ public class LibraryFragment extends Fragment {
             } else {
                 // mImageView.setImageResource(R.mipmap.no_artwork_found);
             }
-            mTitleView.setText  (mAudioBook.getTitle());
-            mAuthorView.setText (mAudioBook.getAuthor());
+            mTitleView.setText  ( mAudioBook.getTitle() );
+            mAuthorView.setText ( mAudioBook.getAuthor() );
         }
 
         public void onClick(View v) {
             // todo: update shared preferences to reflect the most recent book played.
-            Intent intent = AudioPlayerActivity.newInstance(getActivity(), mAudioBook);
+            Intent intent = AudioPlayerActivity.newInstance( getActivity(), mAudioBook );
             startActivity(intent);
         }
 
@@ -250,24 +249,24 @@ public class LibraryFragment extends Fragment {
         }
 
         @Override
-        public BookHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            LayoutInflater inflater = LayoutInflater.from(getActivity());
-            View view = inflater.inflate(R.layout.audiobook_details_view, parent, false);
+        public BookHolder onCreateViewHolder ( ViewGroup parent, int viewType ) {
+            LayoutInflater inflater = LayoutInflater.from( getActivity() );
+            View view               = inflater.inflate ( R.layout.audiobook_details_view, parent, false );
 
-            return new BookHolder(view);
+            return new BookHolder( view );
         }
         @Override
-        public void onBindViewHolder(BookHolder holder, int position) {
-            AudioBook audioBook = mAudioBook.get(position);
-            holder.bindAudioBook(audioBook);
+        public void onBindViewHolder ( BookHolder holder, int position ) {
+            AudioBook audioBook = mAudioBook.get ( position );
+            holder.bindAudioBook ( audioBook );
         }
         @Override
         public int getItemCount() {
             return mAudioBook.size();
         }
 
-        public void addBookToAdapter(AudioBook audioBook) {
-            mAudioBook.add(audioBook);
+        public void addBookToAdapter ( AudioBook audioBook ) {
+            mAudioBook.add ( audioBook );
         }
     }
 

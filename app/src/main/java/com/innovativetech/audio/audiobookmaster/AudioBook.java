@@ -15,6 +15,7 @@ import java.util.UUID;
 public class AudioBook implements Serializable{
 
     private static final String TAG = "AudioBook";
+    private static final int    FIRST_TRACK = 1;
 
     private UUID     mId;
     private String   mTitle;
@@ -90,7 +91,7 @@ public class AudioBook implements Serializable{
 
     public int getCurrTrack() {
         if (mCurrentAudioTrack == null) {
-            setCurrTrack(0);
+            setCurrTrack( FIRST_TRACK );
         }
         return mCurrentAudioTrack.getPlaySequence();
     }

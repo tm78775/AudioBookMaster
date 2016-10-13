@@ -121,6 +121,28 @@ public class Utilities {
         }
     }
 
+    public static void readId3TagTitleAuthorImage( AudioBook book, String mp3Directory ) {
+        try {
+            Mp3File mp3 = new Mp3File( mp3Directory );
+
+            if ( mp3.hasId3v1Tag() ) {
+                ID3v1 tag = mp3.getId3v1Tag();
+
+                book.setTitle  ( tag.getAlbum()  != null ? tag.getAlbum()  : book.getTitle() );
+                book.setAuthor ( tag.getArtist() != null ? tag.getArtist() : book.getAuthor());
+
+            } else if ( mp3.hasId3v2Tag() ) {
+                ID3v2 tag = mp3.getId3v2Tag();
+
+                book.setTitle        ( tag.getAlbum()      != null ? tag.getAlbum()      : book.getTitle() );
+                book.setAuthor       ( tag.getArtist()     != null ? tag.getArtist()     : book.getAuthor() );
+                book.setArtworkArray ( tag.getAlbumImage() != null ? tag.getAlbumImage() : null );
+            }
+        } catch ( Exception ex ) {
+            Log.e( TAG, "Unable to read Id3 tag.", ex);
+        }
+    }
+
     public static void readId3Tag(AudioBook book) {
         try {
 

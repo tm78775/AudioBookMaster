@@ -54,8 +54,8 @@ public class LibraryFragment extends Fragment {
 
     @Override
     public void onCreate( Bundle savedStateInstance ) {
+
         super.onCreate( savedStateInstance );
-        Log.i( TAG, "Entered onCreate" );
         // todo: setupAduiuoBookDirectory has been tailored to personal phone. Needs to work for all phones.
         // setupAudioBookDirectory();
         // todo: get the "last book played" out of shared preferences. Load it.
@@ -90,21 +90,18 @@ public class LibraryFragment extends Fragment {
     public View onCreateView( LayoutInflater inflater, ViewGroup container, Bundle savedStateInstance ) {
         super.onCreateView( inflater, container, savedStateInstance );
 
-        Log.i( TAG, "Entered onCreateView." );
         mView = inflater.inflate( R.layout.fragment_library, container, false );
 
         mLibraryView = ( RecyclerView ) mView.findViewById( R.id.book_recycler_view );
         mLibraryView.setAdapter( mAudioBookAdapter );
-        mLibraryView.setLayoutManager( new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false) );
-
-        Log.i( TAG, "Exiting onCreateView" );
+        mLibraryView.setLayoutManager( new LinearLayoutManager( getActivity(), LinearLayoutManager.VERTICAL, false ) );
 
         return mView;
     }
 
     private void searchForAudioBooks() {
         // find all subdirectories in the root directory.
-        for( int i = 0; i < mUserDefinedDirs.size(); i++ ) {
+        for ( int i = 0; i < mUserDefinedDirs.size(); i++ ) {
             File[] foldersInTopDir = mUserDefinedDirs.get( i ).listFiles( Utilities.getDirectoriesOnlyFilter() );
             searchForFolders( foldersInTopDir );
         }
@@ -153,7 +150,15 @@ public class LibraryFragment extends Fragment {
         try {
             for ( int i = 0; i < mAudioBookFolders.size(); i++ ) {
                 String[] selectArgs = { mAudioBookFolders.get( i ) + "%" };
-                cursor = resolver.query ( uri, null, selection, selectArgs, sortOrder );
+                cursor =
+                    resolver.query (
+                        uri,
+                        null,
+                        selection,
+                        selectArgs,
+                        sortOrder
+                    );
+
                 ArrayList<AudioTrack> bookTracks = new ArrayList<>();
                 AudioBook book = new AudioBook();
 
@@ -161,10 +166,23 @@ public class LibraryFragment extends Fragment {
                     cursor.moveToFirst();
                     int trackNumber = 1;
 
+                    // get the tracks in order.
                     while ( !cursor.isAfterLast() ) {
                         String audioFileDir = cursor.getString ( cursor.getColumnIndex( MediaStore.Audio.Media.DATA ) );
                         AudioTrack track    = new AudioTrack   ( audioFileDir );
                         String trackName    = cursor.getString ( cursor.getColumnIndex( MediaStore.Audio.Media.TRACK ) );
+
+                        if ( trackNumber == 1 ) {
+                            // get the book title from the directory.
+                            int endIndex = audioFileDir.lastIndexOf( '/' );
+                            String firstPass = audioFileDir.substring( 0, endIndex );
+
+                            int startIndex = firstPass.lastIndexOf( '/' ) + 1;
+                            String bookTitle = firstPass.substring( startIndex );
+                            book.setTitle( bookTitle );
+
+                            Utilities.readId3TagTitleAuthorImage( book, audioFileDir );
+                        }
 
                         track.setTrackTitle    ( trackName );
                         track.setPlaySequence  ( trackNumber );
@@ -175,8 +193,12 @@ public class LibraryFragment extends Fragment {
                         cursor.moveToNext();
                         trackNumber++;
                     }
-
+                    cursor.close();
                     book.setTracksList ( bookTracks );
+
+                    // get the book details in order.
+
+
                     mAudioBookAdapter.addBookToAdapter ( book );
 
                 } else {
@@ -187,8 +209,6 @@ public class LibraryFragment extends Fragment {
             cursor.close();
         }
 
-        String itsDone = "!";
-        Log.i( TAG, itsDone );
     }
 
     private void setupAudioBookDirectory() {
@@ -206,33 +226,39 @@ public class LibraryFragment extends Fragment {
         public BookHolder(View itemView) {
             super(itemView);
 
-            mImageView  = (ImageView) itemView.findViewById(R.id.book_cover_view);
-            mTitleView  = (TextView)  itemView.findViewById(R.id.title_view);
-            mAuthorView = (TextView)  itemView.findViewById(R.id.author_view);
+            mImageView  = ( ImageView ) itemView.findViewById ( R.id.book_cover_view );
+            mTitleView  = ( TextView )  itemView.findViewById ( R.id.title_view );
+            mAuthorView = ( TextView )  itemView.findViewById ( R.id.author_view );
 
-            itemView.setOnClickListener(this);
+            itemView.setOnClickListener( this );
         }
 
-        public void bindAudioBook(AudioBook book) {
+        public void bindAudioBook( AudioBook book ) {
             mAudioBook = book;
 
-            if (mAudioBook.hasBitmapArray()) {
-                mImageView.setImageBitmap(Utilities.convertByteArrayToBitmap(mAudioBook.getArtworkArray()));
-            } else if (mAudioBook.getImageDir() != null) {
+            if ( mAudioBook.hasBitmapArray() ) {
                 try {
-                    Bitmap bookCover = BitmapFactory.decodeFile(mAudioBook.getImageDir());
-                    mImageView.setImageBitmap(bookCover);
+                    mImageView.setImageBitmap( Utilities.convertByteArrayToBitmap( book.getArtworkArray() ) );
+                } catch ( NullPointerException npe ) {
+                    Log.e( TAG, "Failed to set bitmap image.", npe );
+                }
+            } else if ( mAudioBook.getImageDir() != null ) {
+                try {
+                    Bitmap bookCover = BitmapFactory.decodeFile( mAudioBook.getImageDir() );
+                    mImageView.setImageBitmap( bookCover );
                 } catch(Exception e) {
                     Log.e(TAG, "Retrieving book cover image failed.");
+                    mImageView = null;
                 }
             } else {
                 // mImageView.setImageResource(R.mipmap.no_artwork_found);
+                mImageView = null;
             }
             mTitleView.setText  ( mAudioBook.getTitle() );
             mAuthorView.setText ( mAudioBook.getAuthor() );
         }
 
-        public void onClick(View v) {
+        public void onClick( View v ) {
             // todo: update shared preferences to reflect the most recent book played.
             Intent intent = AudioPlayerActivity.newInstance( getActivity(), mAudioBook );
             startActivity(intent);
@@ -275,7 +301,7 @@ public class LibraryFragment extends Fragment {
 
         private Context mContext;
 
-        public FetchBookFromIdTask(Context context) {
+        public FetchBookFromIdTask( Context context ) {
             mContext = context;
         }
 

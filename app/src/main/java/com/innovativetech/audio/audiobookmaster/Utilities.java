@@ -121,8 +121,10 @@ public class Utilities {
         }
     }
 
-    public static void readId3TagTitleAuthorImage( AudioBook book, String mp3Directory ) {
+    public static void readId3TagTitleAuthorImage( AudioBook book ) {
         try {
+            AudioTrack track = book.getTracks().get( 0 );
+            String mp3Directory = track.getTrackDir();
             Mp3File mp3 = new Mp3File( mp3Directory );
 
             if ( mp3.hasId3v1Tag() ) {

@@ -180,8 +180,6 @@ public class LibraryFragment extends Fragment {
                             int startIndex = firstPass.lastIndexOf( '/' ) + 1;
                             String bookTitle = firstPass.substring( startIndex );
                             book.setTitle( bookTitle );
-
-                            Utilities.readId3TagTitleAuthorImage( book, audioFileDir );
                         }
 
                         track.setTrackTitle    ( trackName );
@@ -197,9 +195,7 @@ public class LibraryFragment extends Fragment {
                     book.setTracksList ( bookTracks );
 
                     // get the book details in order.
-
-
-                    mAudioBookAdapter.addBookToAdapter ( book );
+                    mAudioBookAdapter.addBookToAdapter( book );
 
                 } else {
                     Log.i ( TAG, "Cursor was null." );
@@ -241,6 +237,7 @@ public class LibraryFragment extends Fragment {
                     mImageView.setImageBitmap( Utilities.convertByteArrayToBitmap( book.getArtworkArray() ) );
                 } catch ( NullPointerException npe ) {
                     Log.e( TAG, "Failed to set bitmap image.", npe );
+                    mImageView.setImageBitmap( null );
                 }
             } else if ( mAudioBook.getImageDir() != null ) {
                 try {
@@ -252,10 +249,10 @@ public class LibraryFragment extends Fragment {
                 }
             } else {
                 // mImageView.setImageResource(R.mipmap.no_artwork_found);
-                mImageView = null;
+                mImageView.setImageBitmap( null );
             }
-            mTitleView.setText  ( mAudioBook.getTitle() );
-            mAuthorView.setText ( mAudioBook.getAuthor() );
+            mTitleView.setText ( mAudioBook.getTitle() );
+            mAuthorView.setText( mAudioBook.getAuthor() );
         }
 
         public void onClick( View v ) {
@@ -293,8 +290,47 @@ public class LibraryFragment extends Fragment {
 
         public void addBookToAdapter ( AudioBook audioBook ) {
             mAudioBook.add ( audioBook );
+            String trackDir = audioBook.getTracks().get( 0 ).getTrackDir().toString();
+            Log.i ( TAG, trackDir );
+            new ProcessBookDetails().execute( audioBook );
+        }
+
+        public void updateBook( AudioBook book ) {
+            for( int i = 0; i < mAudioBook.size(); i++ ) {
+                if( mAudioBook.get( i ).getId() == book.getId() ) {
+                    mAudioBook.set( i, book );
+                    notifyItemChanged( i );
+                    break;
+                }
+            }
         }
     }
+
+    /**
+     * This class will handle gathering details about the audiobook in the background so as not to
+     * slow UI performance.
+     */
+    private class ProcessBookDetails extends AsyncTask<AudioBook, Void, AudioBook> {
+        /**
+         * This method needs to receive an AudioBook object with AudioTrack objects already
+         * associated with it. It will pass this method into a Utility method which will process
+         * ID3tag data.
+         * @param books
+         * @return
+         */
+        @Override
+        protected AudioBook doInBackground( AudioBook... books ) {
+            if( books[ 0 ] != null ) {
+                Utilities.readId3TagTitleAuthorImage( books[ 0 ] );
+            }
+            return books[ 0 ];
+        }
+        @Override
+        protected void onPostExecute( AudioBook book ) {
+            mAudioBookAdapter.updateBook( book );
+        }
+    }
+
 
 
     private class FetchBookFromIdTask extends AsyncTask<String, Void, AudioBook> {

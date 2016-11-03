@@ -299,7 +299,7 @@ public class LibraryFragment extends Fragment {
             for( int i = 0; i < mAudioBook.size(); i++ ) {
                 if( mAudioBook.get( i ).getId() == book.getId() ) {
                     mAudioBook.set( i, book );
-                    notifyItemChanged( i );
+                    notifyDataSetChanged();
                     break;
                 }
             }
@@ -321,7 +321,7 @@ public class LibraryFragment extends Fragment {
         @Override
         protected AudioBook doInBackground( AudioBook... books ) {
             if( books[ 0 ] != null ) {
-                Utilities.readId3TagTitleAuthorImage( books[ 0 ] );
+                Utilities.readId3TagTitleAuthorImage( getActivity(), books[ 0 ] );
             }
             return books[ 0 ];
         }

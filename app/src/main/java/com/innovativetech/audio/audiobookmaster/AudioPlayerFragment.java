@@ -26,8 +26,8 @@ import com.innovativetech.audio.audiobookmaster.fabreveallayout.OnRevealChangeLi
  */
 public class AudioPlayerFragment extends Fragment {
 
-    private static final String TAG        = "AudioPlayerFragment";
-    private static final String BOOK_ARG   = "book_arg";
+    private static final String TAG      = "AudioPlayerFragment";
+    private static final String BOOK_ARG = "book_arg";
 
     private FABRevealLayout mFabRevealLayout;
     private TextView        mAlbumTitleText;
@@ -242,7 +242,7 @@ public class AudioPlayerFragment extends Fragment {
 
     private void initializeMediaPlayer() {
         mMediaPlayer = null;
-        mMediaPlayer = MediaPlayer.create(getActivity(), Uri.parse(mBook.getCurrentAudioTrack(mBook.getCurrTrack())));
+        mMediaPlayer = MediaPlayer.create( getActivity(), Uri.parse( mBook.getCurrentAudioTrack( mBook.getCurrTrack() ) ) );
         setPlayerCompletedListener();
     }
 
@@ -257,17 +257,33 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     private void onPlayerComplete() {
-        onSeekBarPause();
         onNextTrack();
     }
 
+    private void onPauseTrack() {
+        if ( mMediaPlayer.isPlaying() ) {
+            mMediaPlayer.pause();
+        }
+        onSeekBarPause();
+    }
+
     private void onNextTrack() {
+        onSeekBarPause();
         // todo: complete the next track implementation.
-        if (mBook.getCurrTrack() < mBook.numberTracks() - 1) {
-            // todo: go to next track.
+        // go to next track
+        if ( mBook.getCurrTrack() < ( mBook.numberTracks() - 1 ) ) {
+            boolean playOnClick = mMediaPlayer.isPlaying();
+            onPauseTrack();
+            mBook.setTrackTime( mMediaPlayer.getCurrentPosition() );
+            mBook.setCurrTrack( mBook.getCurrTrack() + 1 );
+            mBook.getCurrentAudioTrack( mBook.getCurrTrack() );
+            initializeMediaPlayer();
+            if ( playOnClick ) {
+                onPlayTrack();
+            }
         } else {
             // we've reached the end of the book.
-            mMediaPlayer.pause();
+            onPauseTrack();
             mFabRevealLayout.revealMainView();
             mMediaPlayer.release();
             mMediaPlayer = null;
@@ -277,7 +293,12 @@ public class AudioPlayerFragment extends Fragment {
     private void onPreviousTrack() {
         // todo: complete the previous track implementation.
         if (mBook.getCurrTrack() > 0) {
+            mBook.setCurrTrack( mBook.getCurrTrack() - 1 );
+            if ( mMediaPlayer.isPlaying() ) {
 
+            } else {
+
+            }
         }
     }
 

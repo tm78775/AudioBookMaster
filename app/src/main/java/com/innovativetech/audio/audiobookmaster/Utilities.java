@@ -1,5 +1,6 @@
 package com.innovativetech.audio.audiobookmaster;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -8,10 +9,15 @@ import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.UUID;
 
 /**
  * Created by Timothy on 9/3/16.
@@ -121,7 +127,12 @@ public class Utilities {
         }
     }
 
-    public static void readId3TagTitleAuthorImage( AudioBook book ) {
+    /**
+     * Takes AudioBook parameter. Reads the first mp3 file in the book's tracks collection (if it has
+     * mp3 files.) and reads ID3 tags if they are present.
+     * @param book
+     */
+    public static void readId3TagTitleAuthorImage( Context context, AudioBook book ) {
         try {
             AudioTrack track = book.getTracks().get( 0 );
             String mp3Directory = track.getTrackDir();
@@ -138,11 +149,40 @@ public class Utilities {
 
                 book.setTitle        ( tag.getAlbum()      != null ? tag.getAlbum()      : book.getTitle() );
                 book.setAuthor       ( tag.getArtist()     != null ? tag.getArtist()     : book.getAuthor() );
-                book.setArtworkArray ( tag.getAlbumImage() != null ? tag.getAlbumImage() : null );
+
+                byte[] albumBitmapImgByte = tag.getAlbumImage();
+                book.setArtworkArray ( albumBitmapImgByte != null ? albumBitmapImgByte : null );
             }
         } catch ( Exception ex ) {
             Log.e( TAG, "Unable to read Id3 tag.", ex);
         }
+    }
+
+    // todo: untested code.
+    public static void saveBitmapToDisk( UUID bookId, byte[] albumImage ) {
+        try {
+            FileOutputStream fos = new FileOutputStream( bookId.toString() );
+            BufferedOutputStream bos = new BufferedOutputStream( fos );
+            bos.write( albumImage );
+            bos.close();
+            bos.flush();
+            fos.close();
+        } catch ( FileNotFoundException fnf ) {
+            Log.e( TAG, "File not Found " + fnf.toString() );
+        } catch ( IOException ioe ) {
+            Log.e( TAG, "Error accessing file! " + ioe.toString() );
+        }
+    }
+    // todo: untested, incomplete code.
+    public static byte[] getBitmapFromDisk( UUID bookId ) {
+        try {
+            // InputStream inputStream = new InputStream();
+            // IOUtils.toByteArray()
+        } catch ( Exception ex ) {
+
+        }
+
+        return null;
     }
 
     public static void readId3Tag(AudioBook book) {
